@@ -1,3 +1,6 @@
 [submodule "common"]
 	path = kausal_common
 	url = https://github.com/kausaltech/kausal-backend-common.git
+[submodule "nzc_data_studio"]
+	path = nzc_data_studio
+	url = https://github.com/samuelkwijaya-wong/nzc-data-studio.git
