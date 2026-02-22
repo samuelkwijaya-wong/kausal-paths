@@ -4,7 +4,7 @@ supported_languages: [de, fi]
 site_url: https://equalia.paths.kausal.tech
 dataset_repo:
   url: https://github.com/kausaltech/dvctest.git
-  commit: cdf36e5342c6116f055bf889c26f1f46ba30f6c6
+  commit: 55c4007aa260540039bbd4a1a1c36699b896e5fe
   dvc_remote: kausal-s3
 name: Equalia Climate Action Plan
 owner: Kausal Ltd
@@ -108,6 +108,16 @@ nodes:
   is_outcome: true
   input_dimensions: [sector, energy_carrier]
   output_dimensions: [sector, energy_carrier]
+  goals:
+  - label_en: Net direct emissions
+    default: true
+    linear_interpolation: true
+    values:
+    - year: 2020
+      value: 2800
+    - year: 2040
+      value: 0
+    is_main_goal: true
 
 - id: historical_emissions
   name: Historical emissions
@@ -139,8 +149,6 @@ nodes:
   output_nodes:
   - id: net_emissions
 
-# ===== ETHICAL EVALUATION NODES =====
-
 - id: population
   name: City population
   type: generic.GenericNode
@@ -169,96 +177,6 @@ nodes:
   - id: population
   params:
     formula: emissions / population
-
-- id: acceptable_emissions_per_person
-  name: Acceptable emissions per person threshold
-  description: |
-    Morally acceptable per-capita emissions level consistent with climate goals.
-    Typically 2-3 tonnes CO2e/person/year for 2°C target; 1-1.5 tonnes for 1.5°C target.
-  type: generic.GenericNode
-  quantity: emissions
-  unit: t_co2e/person/a
-  input_datasets:
-  - id: transportation/acceptable_emissions_per_person
-    output_dimensions: []
-  params:
-  - id: multiplier
-    value: 1.0
-    unit: dimensionless
-
-- id: emissions_acceptable
-  name: Emissions meet acceptable threshold
-  description: Evaluation of whether per-capita emissions are below morally 
-    acceptable level
-  type: formula.FormulaNode
-  quantity: fraction
-  unit: dimensionless
-  is_outcome: true
-  input_nodes:
-  - id: net_emissions_per_person
-    tags: [actual]
-  - id: acceptable_emissions_per_person
-    tags: [thresholdd]
-  params:
-    formula: actual <= thresholdd
-
-# FAIR SHARE ASSESSMENT
-
-- id: global_reduction_needed
-  name: Global reduction needed
-  description: Fraction of global emissions that must be eliminated to meet 
-    climate targets
-  type: generic.GenericNode
-  quantity: fraction
-  unit: dimensionless
-  input_datasets:
-  - id: transportation/global_emission_share
-    output_dimensions: []
-  params:
-  - id: multiplier
-    value: 0.55
-    unit: dimensionless
-    label: 45% reduction by 2030 is typical pathway target
-
-- id: emission_reduction_achieved
-  name: Emission reduction achieved
-  description: Reduction from baseline due to policy
-  type: generic.GenericNode
-  quantity: emissions
-  unit: t_co2e/person/a
-  input_nodes:
-  - id: net_emissions_per_person
-  params:
-    operations: add,scenario_impact
-
-- id: emission_reduction_target_per_person
-  name: Emission reduction target per person
-  description: Target reduction per person
-  type: generic.ConstantNode
-  quantity: emissions
-  unit: t_co2e/person/a
-  params:
-  - id: constant
-    value: -1.0
-    unit: t_co2e/person/a
-    label: Target reduction per person
-
-- id: fair_share_met
-  name: Fair share obligation met
-  description: |
-    Evaluation of whether city is meeting its proportional responsibility for 
-    emission reductions. Returns 1 if fair share met, 0 if not.
-  type: formula.FormulaNode
-  quantity: fraction
-  unit: dimensionless
-  is_outcome: true
-  input_nodes:
-  - id: emission_reduction_achieved
-    tags: [achieved]
-  - id: emission_reduction_target_per_person
-    tags: [obligation]
-  params:
-    formula: achieved <= obligation
 
 # ===== FREE RIDER PROBLEM OPERATIONALIZATION =====
 
@@ -439,6 +357,17 @@ scenarios:
   name_en: Baseline
   name_fi: Nykykehitys
   name_de: Basisszenario
+  params:
+  - id: value_fairness.enabled
+    value: true
+  - id: free_rider.enabled
+    value: true
+  - id: value_stewardship.enabled
+    value: true
+  - id: value_non_harm.enabled
+    value: true
+  - id: value_common_heritage.enabled
+    value: true
 
 - id: default
   default: true
