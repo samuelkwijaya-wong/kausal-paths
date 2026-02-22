@@ -67,7 +67,7 @@ class GenericNode(SimpleNode):
         # Instance-level operations (can be overridden by subclasses)
         self.default_operations = self.DEFAULT_OPERATIONS
 
-        # Operation registry
+        # Operation registry (alphabetical)
         self.OPERATIONS: dict[str, Callable[..., tuple[Any, Any]]]  = {
             'add': self._operation_add,
             'add_datasets': self._operation_add_datasets,
@@ -77,8 +77,10 @@ class GenericNode(SimpleNode):
             'concat_datasets': self._operation_concat_datasets,
             'do_correction': self._operation_do_correction,
             'get_single_dataset': self._operation_get_single_dataset,
+            'goal_gap': self._operation_goal_gap,
             'multiply': self._operation_multiply,
             'other': self._operation_other,
+            'scenario_impact': self._operation_scenario_impact,
             'select_variant': self._operation_select_variant,
             'skip_dim_test': self._operation_skip_dim_test,
             'split_by_existing_shares': self._operation_split_by_existing_shares,
@@ -110,6 +112,40 @@ class GenericNode(SimpleNode):
             return dfc, baskets
 
         return df.paths.add_with_dims(dfc), baskets
+
+    def _operation_goal_gap(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+        """Compute gap = actual - goal from the single input node's output and goals."""
+        if df is not None:
+            raise NodeError(
+                self,
+                "goal_gap must be the first and only operation; it uses the input node's output, not an incoming df.",
+            )
+        if len(self.input_nodes) != 1:
+            raise NodeError(
+                self,
+                "goal_gap requires exactly one input node; got %d." % len(self.input_nodes),
+            )
+        source = self.input_nodes[0]
+        df = source.get_output_pl(target_node=self)
+        output_dims = set(self.output_dimensions.keys())
+        sum_dims = set(df.dim_ids) - output_dims
+        if sum_dims:
+            df = df.paths.sum_over_dims(list(sum_dims))
+        if not source.goals or not source.goals.root:
+            self.logger.warning(f"No goals found for node {source.id}. Are you sure you want to use goal_gap?")
+            return df.with_columns(pl.lit(0.0).alias(VALUE_COLUMN)), baskets
+        goal_df = source.goals.root[0]._get_values_df()
+
+        if set(goal_df.dim_ids) != output_dims:
+            raise NodeError(
+                self,
+                "Goal dimensions must match input node output_dimensions: got %s, expected %s."
+                % (sorted(goal_df.dim_ids), sorted(output_dims)),
+            )
+
+        out = df.paths.subtract_with_dims(goal_df, how='inner')
+        baskets['add'] = [] # Input node must have the same unit, so it it put to additive basket.
+        return out, baskets
 
     def _get_input_baskets(self, nodes: list[Node]) -> BasketsDict:
         """Return a dictionary of node 'baskets' categorized by type."""
@@ -150,7 +186,6 @@ class GenericNode(SimpleNode):
         # print(self.id, 'NES baskets', b)
         return baskets
 
-    # Operation wrapper functions
     def _operation_multiply(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
         """Multiply all nodes in the multiply basket."""
         nodes = baskets['multiply']
@@ -180,6 +215,18 @@ class GenericNode(SimpleNode):
         mult = self.get_parameter_value('multiplier', required=False, units=True)
         if mult is not None:
             df = df.multiply_quantity(VALUE_COLUMN, mult)
+        return df, baskets
+
+    def _operation_scenario_impact(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+        """Replace output with (active - baseline). When computing baseline, cache pre-impact df and return zeros."""
+        if df is None:
+            raise NodeError(self, "Cannot compute scenario_impact because no PathsDataFrame is available.")
+        if getattr(self, '_computing_baseline', False):
+            # Incoming df is the result of previous ops (e.g. add) in baseline - that is the true baseline level
+            self._baseline_values = df
+            return df.with_columns(pl.lit(0.0).alias(VALUE_COLUMN)), baskets
+        baseline_df = self.get_baseline_values()
+        df = df.paths.subtract_with_dims(baseline_df, how='outer')
         return df, baskets
 
     def _operation_skip_dim_test(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
@@ -459,6 +506,12 @@ class GenericNode(SimpleNode):
         # Get operation sequence from parameter or class default
         operations_str = self.get_parameter_value_str('operations', required=False) or self.default_operations
         operations = [op.strip() for op in operations_str.split(',')]
+
+        if 'goal_gap' in operations and operations != ['goal_gap']:
+            raise NodeError(
+                self,
+                "goal_gap must be the first and only operation; got operations: %s." % operations_str,
+            )
 
         # Get input dataset and categorize nodes.
         # df = self.get_cleaned_dataset(tag='baseline', required=False)
