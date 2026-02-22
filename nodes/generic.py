@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from collections import defaultdict
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypedDict
 
 from django.utils.translation import gettext_lazy as _
@@ -10,6 +9,7 @@ import numpy as np
 import polars as pl
 
 from common import polars as ppl
+from common.polars import PathsDataFrame
 from nodes.actions import ActionNode
 from nodes.calc import extend_last_historical_value_pl
 from nodes.node import Node, NodeMetric
@@ -36,9 +36,8 @@ if TYPE_CHECKING:
     from params import Parameter
 
 
-# Type aliases for operation methods
-BasketsDict = dict[str, list[Node]]
-OperationReturn = tuple[ppl.PathsDataFrame | None, BasketsDict]
+# Operations return only the (possibly updated) dataframe; inputs are resolved by tag via get_input_nodes()
+OperationReturn = PathsDataFrame | None
 
 
 class GenericNode(SimpleNode):
@@ -67,8 +66,8 @@ class GenericNode(SimpleNode):
         # Instance-level operations (can be overridden by subclasses)
         self.default_operations = self.DEFAULT_OPERATIONS
 
-        # Operation registry (alphabetical)
-        self.OPERATIONS: dict[str, Callable[..., tuple[Any, Any]]]  = {
+        # Operation registry (alphabetical). Each op takes (df) and returns updated df or None.
+        self.OPERATIONS: dict[str, Callable[..., OperationReturn]] = {
             'add': self._operation_add,
             'add_datasets': self._operation_add_datasets,
             'add_from_incoming_dims': self._operation_add_from_incoming_dims,
@@ -90,30 +89,28 @@ class GenericNode(SimpleNode):
         }
 
     # With ports, this operation is just part of _operation_add.
-    def _operation_add_datasets(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_add_datasets(self, df: PathsDataFrame | None) -> OperationReturn:
         dfs = self.get_input_datasets_pl()
         if not dfs:
-            return df, baskets
+            return df
         out = df if df is not None else dfs.pop()
         out = out.paths._add_missing_years(out, self.context)
-
         for d in dfs:
             out = out.select(d.columns)
             di = d.paths._add_missing_years(d, self.context)
             out = out.paths.add_with_dims(di)
-        assert isinstance(out, ppl.PathsDataFrame)
-        return out, baskets
+        assert isinstance(out, PathsDataFrame)
+        return out
 
-    def _operation_get_single_dataset(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_get_single_dataset(self, df: PathsDataFrame | None) -> OperationReturn:
         dfc = self.get_cleaned_dataset(required=False)
         if dfc is None:
-            return df, baskets
+            return df
         if df is None:
-            return dfc, baskets
+            return dfc
+        return df.paths.add_with_dims(dfc)
 
-        return df.paths.add_with_dims(dfc), baskets
-
-    def _operation_goal_gap(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_goal_gap(self, df: PathsDataFrame | None) -> OperationReturn:
         """Compute gap = actual - goal from the single input node's output and goals."""
         if df is not None:
             raise NodeError(
@@ -133,7 +130,7 @@ class GenericNode(SimpleNode):
             df = df.paths.sum_over_dims(list(sum_dims))
         if not source.goals or not source.goals.root:
             self.logger.warning(f"No goals found for node {source.id}. Are you sure you want to use goal_gap?")
-            return df.with_columns(pl.lit(0.0).alias(VALUE_COLUMN)), baskets
+            return df.with_columns(pl.lit(0.0).alias(VALUE_COLUMN))
         goal_df = source.goals.root[0]._get_values_df()
 
         if set(goal_df.dim_ids) != output_dims:
@@ -144,119 +141,110 @@ class GenericNode(SimpleNode):
             )
 
         out = df.paths.subtract_with_dims(goal_df, how='inner')
-        baskets['add'] = [] # Input node must have the same unit, so it it put to additive basket.
-        return out, baskets
+        return out
 
-    def _get_input_baskets(self, nodes: list[Node]) -> BasketsDict:
-        """Return a dictionary of node 'baskets' categorized by type."""
-        baskets: dict[str, list[Node]] = defaultdict(list)
-        # Special tags that should be skipped completely
+    def _get_add_multiply_nodes(self) -> tuple[list[Node], list[Node]]:
+        """
+        Return (add_nodes, multiply_nodes) for add/multiply ops.
+
+        Uses tag 'additive'/'non_additive' or unit compatibility. Excludes nodes in
+        self._weighted_node_ids (set by add_with_weights so they are not added again).
+        """
         skip_tags = {'ignore_content'}
-
-        # Categorize nodes by tags
+        exclude_ids: set[str] = getattr(self, '_weighted_node_ids', set())
+        add_nodes: list[Node] = []
+        multiply_nodes: list[Node] = []
         for edge in self.edges:
-            if edge.output_node != self or edge.input_node not in nodes:
+            if edge.output_node != self:
                 continue
-
             node = edge.input_node
             if any(tag in edge.tags or tag in node.tags for tag in skip_tags):
                 continue
-
-            assigned = False
-            for tag, basket in TAG_TO_BASKET.items():
-                if tag in edge.tags or tag in node.tags:
-                    baskets[basket].append(node)
-                    assigned = True
-                    break
-
-            if not assigned:
-                df = node.get_output_pl(target_node=self) # Works with multi-metric nodes.
-                df_unit = df.get_unit(VALUE_COLUMN)
+            edge_or_node_tags = set(edge.tags) | set(node.tags)
+            if node.id in exclude_ids:
+                continue
+            if 'additive' in edge_or_node_tags:
+                add_nodes.append(node)
+                continue
+            if 'non_additive' in edge_or_node_tags:
+                multiply_nodes.append(node)
+                continue
+            # No add/multiply tag: check if node has another op-specific tag (then skip for add/multiply)
+            if edge_or_node_tags.intersection(TAG_TO_BASKET.keys()):
+                continue
+            # Untagged: assign by unit compatibility
+            try:
+                out_df = node.get_output_pl(target_node=self)
+                df_unit = out_df.get_unit(VALUE_COLUMN)
                 if self.is_compatible_unit(self.unit, df_unit):
-                    baskets['add'].append(node)
+                    add_nodes.append(node)
                 else:
-                    baskets['multiply'].append(node)
+                    multiply_nodes.append(node)
+            except Exception:
+                multiply_nodes.append(node)
+        return add_nodes, multiply_nodes
 
-        # print(self.id, 'NODE baskets', baskets) # FIXME Is there a bug/difference between the baskets?
-        # nes = self.context.node_explanation_system
-        # if nes is not None:
-        #     b = nes.baskets[self.id]
-        # else:
-        #     b = {}
-        # print(self.id, 'NES baskets', b)
-        return baskets
+    def _operation_multiply(self, df: PathsDataFrame | None) -> OperationReturn:
+        """Multiply all nodes tagged 'non_additive' or (untagged and unit-incompatible)."""
+        _add, multiply_nodes = self._get_add_multiply_nodes()
+        if multiply_nodes:
+            df = self.multiply_nodes_pl(df=df, nodes=multiply_nodes)
+        return df
 
-    def _operation_multiply(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
-        """Multiply all nodes in the multiply basket."""
-        nodes = baskets['multiply']
-        if nodes and len(nodes) > 0:
-            df = self.multiply_nodes_pl(df=df, nodes=nodes)
-            baskets['multiply'] = []
-        return df, baskets
+    def _operation_add(self, df: PathsDataFrame | None) -> OperationReturn:
+        """Add all nodes tagged 'additive' or (untagged and unit-compatible)."""
+        add_nodes, _multiply = self._get_add_multiply_nodes()
+        if add_nodes:
+            df = self.add_nodes_pl(df=df, nodes=add_nodes, ignore_unit=True)
+        return df
 
-    def _operation_add(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
-        """Add all nodes in the add basket."""
-        nodes = baskets['add']
-        if nodes and len(nodes) > 0:
-            df = self.add_nodes_pl(df=df, nodes=nodes, ignore_unit=True)
-            baskets['add'] = []
-        return df, baskets
-
-    def _operation_other(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_other(self, df: PathsDataFrame | None) -> OperationReturn:
         """Process other nodes - to be implemented by subclasses."""
-        if type(self) is GenericNode and len(baskets['other']) > 0:
+        other_nodes = self.get_input_nodes(tag='other_node')
+        if type(self) is GenericNode and other_nodes:
             raise NodeError(self, f"Generic node {self.id} cannot handle 'other' nodes.")
-        return df, baskets
+        return df
 
-    def _operation_apply_multiplier(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_apply_multiplier(self, df: PathsDataFrame | None) -> OperationReturn:
         """Apply the node's multiplier parameter to the dataframe."""
         if df is None:
             raise NodeError(self, "Cannot apply multiplier because no PathsDataFrame is available.")
         mult = self.get_parameter_value('multiplier', required=False, units=True)
         if mult is not None:
             df = df.multiply_quantity(VALUE_COLUMN, mult)
-        return df, baskets
+        return df
 
-    def _operation_scenario_impact(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_scenario_impact(self, df: PathsDataFrame | None) -> OperationReturn:
         """Replace output with (active - baseline). When computing baseline, cache pre-impact df and return zeros."""
         if df is None:
             raise NodeError(self, "Cannot compute scenario_impact because no PathsDataFrame is available.")
         if getattr(self, '_computing_baseline', False):
-            # Incoming df is the result of previous ops (e.g. add) in baseline - that is the true baseline level
             self._baseline_values = df
-            return df.with_columns(pl.lit(0.0).alias(VALUE_COLUMN)), baskets
+            return df.with_columns(pl.lit(0.0).alias(VALUE_COLUMN))
         baseline_df = self.get_baseline_values()
         df = df.paths.subtract_with_dims(baseline_df, how='outer')
-        return df, baskets
+        return df
 
-    def _operation_skip_dim_test(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
-        """Skip dimension test on loading because subsequent opearations will take care of that."""
+    def _operation_skip_dim_test(self, df: PathsDataFrame | None) -> OperationReturn:
+        """Skip dimension test on loading; exactly one input must have tag 'skip_dim_test'."""
         if df is not None:
             raise NodeError(self, "'skip_dim_test' must be the first of the operations.")
-        operation = 'skip_dim_test'
-        numtags = baskets.get(operation) or []
-        if len(numtags) != 1:
-            raise NodeError(
-                self,
-                f"Exactly one input node must have tag '{operation}'. Now there are {len(numtags)}.")
-
-        n: Node = baskets[operation][0]
-        baskets[operation] = []
-        return n.get_output_pl(target_node=self, skip_dim_test=True), baskets
+        return self.get_input_node(tag='skip_dim_test', required=True).get_output_pl(
+            target_node=self, skip_dim_test=True
+        )
 
 
-    def _operation_concat_datasets(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_concat_datasets(self, df: PathsDataFrame | None) -> OperationReturn:
         dfs = self.get_input_datasets_pl()
         if not dfs:
-            return df, baskets
+            return df
         out = df if df is not None else dfs.pop()
-
         for d in dfs:
             out = out.select(d.columns)
             out = out.paths.concat_vertical(d)
-        assert isinstance(out, ppl.PathsDataFrame)
+        assert isinstance(out, PathsDataFrame)
         out = out.paths._add_missing_years(out, self.context)
-        return out, baskets
+        return out
 
     OperationType = Literal[
         'use_as_totals',
@@ -269,49 +257,30 @@ class GenericNode(SimpleNode):
 
     def _preprocess_for_one(
             self,
-            df: ppl.PathsDataFrame | None,
-            baskets: BasketsDict,
+            df: PathsDataFrame | None,
             operation: OperationType,
-            stackable: bool = True) -> OperationReturn:
+            stackable: bool = True) -> PathsDataFrame:
         if df is None:
             raise NodeError(self, "Cannot operate because no PathsDataFrame is available.")
         if self.quantity not in STACKABLE_QUANTITIES and stackable:
             raise NodeError(self, f"Split operations are only allowed for stackable quantities, not {self.quantity}.")
-
-        numtags = baskets.get(operation) or []
-        if len(numtags) != 1:
-            raise NodeError(
-                self,
-                f"Exactly one input node must have tag '{operation}'. Now there are {len(numtags)}.")
-
-        n: Node = baskets[operation][0]
-        baskets[operation] = []
-        df = n.get_output_pl(target_node=self, skip_dim_test=True)
-
-        return df, baskets
+        n = self.get_input_node(tag=operation, required=True)
+        return n.get_output_pl(target_node=self, skip_dim_test=True)
 
     def _operation_split_dims(
             self,
-            df: ppl.PathsDataFrame | None,
-            baskets: BasketsDict,
+            df: PathsDataFrame,
             operation: OperationType) -> OperationReturn:
         """
-        Split operations with different strategies using this base function.
+        Split operations with different strategies.
 
-        There are different approaches available with the input and the node that is operated:
-        1) Use as totals: input gives totals to the node.
-        2) Use as shares: input has new dims that are used to split the node to new cats.
-        3) Split by existing shares: node has new dims that are used to split input to new cats. In the end, add input to node.
-        4) Split evenly to cats: same as (3) but give every category equal weight.
-        5) Add to existing dims: input is non-stackable and is added to all new dimensions in node.
-        6) Add from incoming dims: node is non-stackable and is added to all new dimensions in input.
+        Input nodes are resolved by tag (e.g. use_as_totals, add_to_existing_dims).
         """
         add_non_stackables = ['add_to_existing_dims', 'add_from_incoming_dims']
         if operation in add_non_stackables:
-            return self._operation_add_non_stackable_dims(df, baskets, operation)
+            return self._operation_add_non_stackable_dims(df, operation)
         stackable = True
-
-        dfin, baskets = self._preprocess_for_one(df, baskets, operation, stackable=stackable)
+        dfin = self._preprocess_for_one(df, operation, stackable=stackable)
         use_as = ['use_as_totals', 'use_as_shares']
 
         if operation in ['use_as_shares', 'add_from_incoming_dims']:
@@ -321,9 +290,8 @@ class GenericNode(SimpleNode):
             splitter = df
             splittee = dfin
 
-        # Validation
-        assert isinstance(splitter, ppl.PathsDataFrame)
-        assert isinstance(splittee, ppl.PathsDataFrame)
+        assert isinstance(splitter, PathsDataFrame)
+        assert isinstance(splittee, PathsDataFrame)
 
         newdims = [dim for dim in splittee.dim_ids if dim not in splitter.dim_ids]
         if newdims and operation not in use_as:
@@ -347,23 +315,19 @@ class GenericNode(SimpleNode):
             .alias(VALUE_COLUMN)
         ).drop([VALUE_COLUMN + '_right'])
 
-        # Apply ratios
         df_scaled = splittee.paths.multiply_with_dims(df_ratio)
 
         if operation not in use_as:
             df_scaled = splittee.paths.add_with_dims(df_scaled)
 
-        return df_scaled, baskets
+        return df_scaled
 
     def _operation_add_non_stackable_dims(
             self,
-            df: ppl.PathsDataFrame | None,
-            baskets: BasketsDict,
+            df: PathsDataFrame,
             operation: OperationType) -> OperationReturn:
-        if df is None:
-            raise NodeError(self, "Cannot operate because no PathsDataFrame is available.")
-        nodes = baskets.get(operation) or []
-        if len(nodes) == 0:
+        nodes = self.get_input_nodes(tag=operation)
+        if not nodes:
             raise NodeError(self, f"At least one input node must have tag '{operation}'.")
         for node in nodes:
             dfin = node.get_output_pl(target_node=self, skip_dim_test=True)
@@ -374,9 +338,8 @@ class GenericNode(SimpleNode):
                 splitter = df
                 splittee = dfin
 
-            # Validation
-            assert isinstance(splitter, ppl.PathsDataFrame)
-            assert isinstance(splittee, ppl.PathsDataFrame)
+            assert isinstance(splitter, PathsDataFrame)
+            assert isinstance(splittee, PathsDataFrame)
 
             newdims = [dim for dim in splittee.dim_ids if dim not in splitter.dim_ids]
             if newdims:
@@ -391,37 +354,30 @@ class GenericNode(SimpleNode):
             df_added = splittee.paths.multiply_with_dims(df_unity)
             df = df_added.paths.add_with_dims(splitter)
 
-        baskets[operation] = []
-        return df, baskets
+        return df
 
     # Splitting functions
-    def _operation_use_as_totals(
-        self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
-        return self._operation_split_dims(df, baskets, 'use_as_totals')
+    def _operation_use_as_totals(self, df: PathsDataFrame) -> OperationReturn:
+        return self._operation_split_dims(df, 'use_as_totals')
 
-    def _operation_use_as_shares(
-        self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
-        return self._operation_split_dims(df, baskets, 'use_as_shares')
+    def _operation_use_as_shares(self, df: PathsDataFrame) -> OperationReturn:
+        return self._operation_split_dims(df, 'use_as_shares')
 
-    def _operation_split_by_existing_shares(
-        self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
-        return self._operation_split_dims(df, baskets, 'split_by_existing_shares')
+    def _operation_split_by_existing_shares(self, df: PathsDataFrame) -> OperationReturn:
+        return self._operation_split_dims(df, 'split_by_existing_shares')
 
-    def _operation_split_evenly_to_cats(
-        self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
-        return self._operation_split_dims(df, baskets, 'split_evenly_to_cats')
+    def _operation_split_evenly_to_cats(self, df: PathsDataFrame) -> OperationReturn:
+        return self._operation_split_dims(df, 'split_evenly_to_cats')
 
-    def _operation_add_to_existing_dims(
-        self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
-        return self._operation_split_dims(df, baskets, 'add_to_existing_dims')
+    def _operation_add_to_existing_dims(self, df: PathsDataFrame) -> OperationReturn:
+        return self._operation_split_dims(df, 'add_to_existing_dims')
 
-    def _operation_add_from_incoming_dims(
-        self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_add_from_incoming_dims(self, df: PathsDataFrame) -> OperationReturn:
         if self.quantity in STACKABLE_QUANTITIES:
             raise NodeError(self, f"Node cannot have stackable quantity but has {self.quantity}.")
-        return self._operation_split_dims(df, baskets, 'add_from_incoming_dims')
+        return self._operation_split_dims(df, 'add_from_incoming_dims')
 
-    def drop_unnecessary_levels(self, df: ppl.PathsDataFrame, droplist: list[str]) -> ppl.PathsDataFrame:
+    def drop_unnecessary_levels(self, df: PathsDataFrame, droplist: list[str]) -> PathsDataFrame:
         # Drop filter levels and empty dimension levels.
         drops = [d for d in droplist if d in df.columns]
         df = df.drop(drops)
@@ -440,11 +396,11 @@ class GenericNode(SimpleNode):
         return df
 
     # -----------------------------------------------------------------------------------
-    def add_missing_years(self, df: ppl.PathsDataFrame) -> ppl.PathsDataFrame:
+    def add_missing_years(self, df: PathsDataFrame) -> PathsDataFrame:
         return df.paths._add_missing_years(df, self.context)
 
     # -----------------------------------------------------------------------------------
-    def _operation_select_variant(self, df: ppl.PathsDataFrame, baskets: BasketsDict) -> OperationReturn:
+    def _operation_select_variant(self, df: PathsDataFrame) -> OperationReturn:
         filt = self.get_parameter_value_str('categories', required=False)
         if filt is not None:
             # Validate format: "dimension:category[,category...]"
@@ -470,7 +426,7 @@ class GenericNode(SimpleNode):
             do = self.get_typed_parameter_value('do_correction', bool, required=False)
             if do is not None:
                 condition = pl.col(dim).is_in(cat_list)
-                return df.filter(condition if do else ~condition), baskets
+                return df.filter(condition if do else ~condition)
 
             val = self.get_parameter_value('selected_number', required=True)
             if isinstance(val, (int, float)):
@@ -483,10 +439,10 @@ class GenericNode(SimpleNode):
 
             df = df.filter(pl.col(dim) == cat)
 
-        return df, baskets
+        return df
 
     # -----------------------------------------------------------------------------------
-    def _operation_do_correction(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_do_correction(self, df: PathsDataFrame | None) -> OperationReturn:
         if df is None:
             raise NodeError(self, "Dataframe missing for 'do correction'.")
         do_correction = self.get_parameter_value('do_correction', required=True)
@@ -497,11 +453,11 @@ class GenericNode(SimpleNode):
         if not do_correction:
             df = df.with_columns(pl.col(VALUE_COLUMN) * pl.lit(0) + pl.lit(no_correction_value))
 
-        return df, baskets
+        return df
 
     # -----------------------------------------------------------------------------------
 
-    def compute(self) -> ppl.PathsDataFrame:
+    def compute(self) -> PathsDataFrame:
         """Process inputs according to the operations sequence."""
         # Get operation sequence from parameter or class default
         operations_str = self.get_parameter_value_str('operations', required=False) or self.default_operations
@@ -513,39 +469,18 @@ class GenericNode(SimpleNode):
                 "goal_gap must be the first and only operation; got operations: %s." % operations_str,
             )
 
-        # Get input dataset and categorize nodes.
-        # df = self.get_cleaned_dataset(tag='baseline', required=False)
         df = None
-        baskets = self._get_input_baskets(self.input_nodes)
-
-        # Track original node counts for validation
-        original_node_counts = {basket: len(nodes) for basket, nodes in baskets.items()}
-
-        # Apply operations in sequence
         for op_name in operations:
             if df is not None and op_name in df.paths.OPERATIONS:
                 op = df.paths.OPERATIONS[op_name]
                 df = op(df, self.context)
-
             else:
                 if op_name not in self.OPERATIONS:
                     raise NodeError(self, f"Unknown operation: {op_name}")
-
                 operation_func = self.OPERATIONS[op_name]
-                df, baskets = operation_func(df, baskets)
-        if not isinstance(df, ppl.PathsDataFrame):
+                df = operation_func(df)
+        if not isinstance(df, PathsDataFrame):
             raise NodeError(self, "The output is not a PathsDataFrame.")
-
-        # Validate that all nodes were used
-        unused_nodes = [
-            (node.id, basket)
-            for basket, nodes in baskets.items()
-            if nodes and original_node_counts.get(basket, 0) > 0
-            for node in nodes]
-
-        if unused_nodes:
-            unused_str = ", ".join([f"{node_id} ({basket})" for node_id, basket in unused_nodes])
-            raise NodeError(self, f"Unused input nodes found after all operations: {unused_str}")
 
         if VALUE_COLUMN not in df.columns:
             raise NodeError(self, f"{VALUE_COLUMN} not found, only {df.metric_cols}.")
@@ -565,28 +500,18 @@ class LeverNode(GenericNode):
         StringParameter(local_id='new_category'),
     ]
 
-    def _operation_override_with_lever(
-            self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_override_with_lever(self, df: PathsDataFrame | None) -> OperationReturn:
         """Override upstream computation with lever values if enabled."""
         if df is None:
-            return None, baskets
+            return None
 
-        # Get the lever node from the "other" basket
-        lever_nodes = baskets.get('other', [])
-        baskets['other'] = []
-        if len(lever_nodes) != 1:
-            raise NodeError(self, "LeverNode requires exactly one 'other_node' tagged input as lever.")
-
-        lever = lever_nodes[0]
-
+        lever = self.get_input_node(tag='other_node', required=True)
         if not isinstance(lever, ActionNode):
             raise NodeError(self, f"Lever {lever} must be an action.")
 
-        # If lever is not enabled, return original dataframe
         if not lever.is_enabled():
-            return df, baskets
+            return df
 
-        # Get lever output and override values
         dfl = lever.get_output_pl(target_node=self)
         dfl = dfl.ensure_unit(VALUE_COLUMN, df.get_unit(VALUE_COLUMN))
         out = df.paths.join_over_index(dfl, how='left', index_from='left')
@@ -601,12 +526,10 @@ class LeverNode(GenericNode):
             s = f"({len(out)} rows) as the affected node {self.id} ({len(df)} rows)."
             raise NodeError(self, f"Lever {lever.id} must result in the same structure {s}")
 
-        return out, baskets
+        return out
 
-    def _operation_fill_new_category(self, df: ppl.PathsDataFrame, baskets: BasketsDict) -> OperationReturn:
+    def _operation_fill_new_category(self, df: PathsDataFrame) -> OperationReturn:
         """Fill in a new category with complement values."""
-        if df is None:
-            return None, baskets
 
         category = self.get_parameter_value_str('new_category', required=True)
         dim, cat = category.split(':')
@@ -627,7 +550,7 @@ class LeverNode(GenericNode):
                 df = df.filter(~pl.col(col).is_null())
             df = df.paths.to_narrow()
 
-        return df, baskets
+        return df
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -652,7 +575,7 @@ class WeightedSumNode(GenericNode):
         # Register the custom operation
         self.OPERATIONS['add_with_weights'] = self._operation_add_with_weights
 
-    def _process_single_weighted_node(self, node: Node, node_weights: ppl.PathsDataFrame) -> ppl.PathsDataFrame:
+    def _process_single_weighted_node(self, node: Node, node_weights: PathsDataFrame) -> PathsDataFrame:
         """Process a single node with its weights and return the weighted output."""
         # Get node output
         node_output = node.get_output_pl(target_node=self)
@@ -677,7 +600,7 @@ class WeightedSumNode(GenericNode):
         # Multiply node output with weights
         return node_output.paths.multiply_with_dims(node_weights, how='inner')
 
-    def _combine_weighted_outputs(self, weights_df: ppl.PathsDataFrame, additive_nodes: list[Node]) -> ppl.PathsDataFrame | None:
+    def _combine_weighted_outputs(self, weights_df: PathsDataFrame, additive_nodes: list[Node]) -> PathsDataFrame | None:
         """Process and combine all weighted node outputs."""
         # Create a lookup map for additive nodes
         node_map = {node.id: node for node in additive_nodes}
@@ -704,36 +627,30 @@ class WeightedSumNode(GenericNode):
 
         return result
 
-    def _operation_add_with_weights(self, df: ppl.PathsDataFrame, baskets: BasketsDict) -> OperationReturn:
+    def _operation_add_with_weights(self, df: PathsDataFrame) -> OperationReturn:
         """Combine additive node outputs weighted by values in a multidimensional weights DataFrame."""
-        # Get weights dataframe from specifically tagged input
         weights_df = self.get_input_dataset_pl(tag='input_node_weights', required=False)
         if weights_df is None:
-            return df, baskets
+            return df
 
-        # Focus specifically on nodes in the add basket
-        additive_nodes = baskets['add']
+        # Clear stale value from previous compute(); we set it again below for this run's add op
+        self._weighted_node_ids = set()
+        additive_nodes, _ = self._get_add_multiply_nodes()
         if not additive_nodes:
             raise NodeError(
                 self,
-                "If node contains weights, it must contain additive input nodes (typically with tag 'additive')."
+                "If node contains weights, it must contain additive input nodes (typically with tag 'additive').",
             )
 
-        # Process all weighted nodes
+        # Mark these nodes as consumed so _operation_add does not add them again
+        self._weighted_node_ids = set(weights_df['node'].unique())
+
         result = self._combine_weighted_outputs(weights_df, additive_nodes)
 
-        # FIXME Must get a result.
-        # FIXME Also, must use df for non-weighted addition.
         if result is None:
             self.logger.warning(f"No matching nodes found in weights DataFrame for {self.id}")
-            return df, baskets
-
-        # Remove processed nodes from add basket (to prevent double-counting)
-        processed_nodes = [node for node in additive_nodes if node.id in weights_df['node'].unique()]
-        for node in processed_nodes:
-            baskets['add'].remove(node)
-
-        return result, baskets
+            return df
+        return result
 
 
 class LogitNode(WeightedSumNode):
@@ -751,10 +668,8 @@ class LogitNode(WeightedSumNode):
         """
     )
 
-    def _operation_logit_transform(self, df: ppl.PathsDataFrame, baskets: BasketsDict) -> OperationReturn:
+    def _operation_logit_transform(self, df: PathsDataFrame) -> OperationReturn:
         """Apply logit transform to combine observations with weighted sum."""
-        if df is None:
-            return None, baskets
 
         # Ensure our weighted sum is in dimensionless units
         df = df.ensure_unit(VALUE_COLUMN, 'dimensionless')
@@ -786,7 +701,7 @@ class LogitNode(WeightedSumNode):
         df = df.with_columns(expr.alias(VALUE_COLUMN))
         df = df.ensure_unit(VALUE_COLUMN, self.unit)
 
-        return df, baskets
+        return df
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -837,9 +752,9 @@ class DimensionalSectorNode(GenericNode):
 
     def process_sector_data_pl(
         self,
-        df: ppl.PathsDataFrame,
+        df: PathsDataFrame,
         columns: str | list[str]
-    ) -> ppl.PathsDataFrame:
+    ) -> PathsDataFrame:
         """
         Process sector data from a polars DataFrame.
 
@@ -908,27 +823,20 @@ class DimensionalSectorNode(GenericNode):
 
         return result
 
-    def _operation_process_sector(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_process_sector(self, df: PathsDataFrame | None) -> OperationReturn:
         """Process the sector data from HSY nodes."""
         if df is not None:
-            raise NodeError(self, "process_sector must be the first operation, so df must be None.") # TODO Could be relaxed
-        if len(baskets['other']) != 1:
-            raise NodeError(self, "The node must have exactly one 'other_node' input.")
-
-        # Get the output from HSY node
-        n = baskets['other'][0]
+            raise NodeError(self, "process_sector must be the first operation, so df must be None.")
+        n = self.get_input_node(tag='other_node', required=True)
         data_df = n.get_output_pl()
 
-        # Process the sector data (default to emissions column)
         data_column = getattr(self, 'data_column', EMISSION_QUANTITY)
         result = self.process_sector_data_pl(data_df, columns=[data_column])
 
         result = result.rename({data_column: VALUE_COLUMN})
         result = extend_last_historical_value_pl(result, end_year=self.context.model_end_year)
         result = result.ensure_unit(VALUE_COLUMN, self.unit)
-        baskets['other'] = []
-
-        return result, baskets
+        return result
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -965,29 +873,19 @@ class DimensionalSectorEmissionFactor(DimensionalSectorNode):
     default_unit = 'g/kWh'
     quantity = EMISSION_FACTOR_QUANTITY
 
-    def _operation_process_emission_factor(
-            self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_process_emission_factor(self, df: PathsDataFrame | None) -> OperationReturn:
         """Calculate emission factors from energy and emission data."""
         if df is not None:
-            raise NodeError(self, "process_sector must be the first operation, so df must be None.") # TODO Could be relaxed
-        if len(baskets['other']) != 1:
-            raise NodeError(self, "The node must have exactly one 'other_node' input.")
-
-        # Get the output from HSY node
-        n = baskets['other'][0]
+            raise NodeError(self, "process_sector must be the first operation, so df must be None.")
+        n = self.get_input_node(tag='other_node', required=True)
         data_df = n.get_output_pl()
 
-        # Process the sector data with both energy and emissions columns
         result = self.process_sector_data_pl(data_df, columns=[ENERGY_QUANTITY, EMISSION_QUANTITY])
-
-        # Calculate emission factor: emissions / energy
         result = result.divide_cols([EMISSION_QUANTITY, ENERGY_QUANTITY], VALUE_COLUMN)
         result = result.drop([ENERGY_QUANTITY, EMISSION_QUANTITY])
         result = extend_last_historical_value_pl(result, end_year=self.context.model_end_year)
         result = result.ensure_unit(VALUE_COLUMN, self.unit)
-        baskets['other'] = []
-
-        return result, baskets
+        return result
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1004,27 +902,10 @@ class IterativeNode(GenericNode):
         no sense to use this node class), which is given as a growth rate per year from the previous year's value.
         """)
 
-    def _get_other_node(self, tag: str, baskets: BasketsDict) -> Node:
-        """Get and validate a required node from 'other' basket."""
-        other_nodes = baskets.get('other', [])
-
-        node = self.get_input_node(tag=tag, required=True)
-
-        if node not in other_nodes:
-            raise NodeError(self, f"The node with tag '{tag}' must be in 'other' basket")
-
-        baskets['other'].remove(node)
-
-        return node
-
-    def _operation_year_iteration(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
-        """
-        Perform year-by-year iteration using previous values, growth rate and changes.
-
-        Handles multidimensional dataframes by processing each year's data with full dimensions.
-        """
-        rate_node = self._get_other_node(tag='rate', baskets=baskets)
-        base_node = self._get_other_node(tag='base', baskets=baskets)
+    def _operation_year_iteration(self, df: PathsDataFrame | None) -> OperationReturn:
+        """Perform year-by-year iteration using previous values, growth rate and changes."""
+        rate_node = self.get_input_node(tag='rate', required=True)
+        base_node = self.get_input_node(tag='base', required=True)
 
         # Get rate dataframe and prepare it
         rate_df = rate_node.get_output_pl(target_node=self)
@@ -1113,7 +994,7 @@ class IterativeNode(GenericNode):
 
         final_result = final_result.ensure_unit(VALUE_COLUMN, self.unit)
 
-        return final_result, baskets
+        return final_result
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1134,27 +1015,28 @@ class CoalesceNode(GenericNode):
         # Register threshold operation
         self.OPERATIONS['coalesce'] = self._operation_coalesce
 
-    def _operation_coalesce(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
-        """Coalesce the two dataframes."""
+    def _operation_coalesce(self, df: PathsDataFrame | None) -> OperationReturn:
+        """Coalesce requires exactly one input with tag primary or secondary. Prefer using coalesce in formula."""
         if df is None:
             raise NodeError(self, "Cannot apply coalesce because no PathsDataFrame is available.")
 
-        nodes: list[Node] = baskets.get('coalesce', [])
-        baskets['coalesce'] = []
-        if len(nodes) != 1:
-            raise NodeError(self, "There must be exactly one input node with either tag 'primary' or 'secondary'.")
-
-        node = nodes[0]
-        assert isinstance(node, Node)
-        df_co = node.get_output_pl(target_node=self)
-        tags = next(edge.tags for edge in node.edges if edge.output_node.id == self.id)
-        tags.extend(list(node.tags))
-        if 'primary' in tags:
+        primary = self.get_input_nodes(tag='primary')
+        secondary = self.get_input_nodes(tag='secondary')
+        if len(primary) == 1 and len(secondary) == 0:
+            node = primary[0]
+            df_co = node.get_output_pl(target_node=self)
             df = df_co.paths.coalesce_df(df, how='outer', debug=self.debug, id=self.id)
-        else:
+        elif len(primary) == 0 and len(secondary) == 1:
+            node = secondary[0]
+            df_co = node.get_output_pl(target_node=self)
             df = df.paths.coalesce_df(df_co, how='outer', debug=self.debug, id=self.id)
-
-        return df, baskets
+        else:
+            raise NodeError(
+                self,
+                ("Coalesce requires exactly one input with tag 'primary' or 'secondary'; "
+                 "got %d primary, %d secondary.") % (len(primary), len(secondary)),
+            )
+        return df
 
 
 class CohortNode(GenericNode):
@@ -1313,7 +1195,7 @@ class CohortNode(GenericNode):
 
     def simulate_cohort(
             self,
-            initial_year: ppl.PathsDataFrame,
+            initial_year: PathsDataFrame,
             years: range,
             max_age: int = 161
         ):
@@ -1456,9 +1338,9 @@ class CohortNode(GenericNode):
 
     def expand_to_annual_ages(
             self,
-            forest_df: ppl.PathsDataFrame,
+            forest_df: PathsDataFrame,
             age_groups: list[tuple[int, int]],
-        ) -> ppl.PathsDataFrame:
+        ) -> PathsDataFrame:
         """Convert aggregated age group data to annual age classes."""
         annual_data = []
         meta = forest_df.get_meta()
@@ -1505,8 +1387,8 @@ class CohortNode(GenericNode):
 
     def aggregate_to_age_groups(
             self,
-            annual_results: ppl.PathsDataFrame,
-            age_groups: list[tuple[int, int]]) -> ppl.PathsDataFrame:
+            annual_results: PathsDataFrame,
+            age_groups: list[tuple[int, int]]) -> PathsDataFrame:
         """Aggregate annual age results back to original age groups."""
 
         def find_age_group(age: int) -> str: #, age_groups: list[tuple[int, int]]) -> str:
@@ -1527,7 +1409,7 @@ class CohortNode(GenericNode):
 
         return df
 
-    def compute(self) -> ppl.PathsDataFrame:
+    def compute(self) -> PathsDataFrame:
         # Define age groups
         age_groups = [(0,0), (1,20), (21,40), (41,60), (61,80), (81,100),
                     (101,120), (121,140), (141,160)]
@@ -1573,7 +1455,7 @@ class DatasetReduceNode(GenericNode):
         BoolParameter(local_id='relative_goal'),
     ]
 
-    def compute(self) -> ppl.PathsDataFrame:  # noqa: PLR0915
+    def compute(self) -> PathsDataFrame:  # noqa: PLR0915
         n = self.get_input_node(tag='historical', required=False)
         if n is None:
             df = self.get_input_dataset_pl(tag='historical')
@@ -1678,8 +1560,7 @@ class GenerationCapacityNode(GenericNode):
     ]
     DEFAULT_OPERATIONS = 'add,generation_capacity'
 
-    def _operation_generation_capacity(
-            self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_generation_capacity(self, df: PathsDataFrame | None) -> OperationReturn:
         if df is None:
             raise NodeError(self, "Node must receive new installations as input node(s).")
 
@@ -1709,7 +1590,7 @@ class GenerationCapacityNode(GenericNode):
         )
         df = df.paths.join_over_index(stock)
 
-        return df, baskets
+        return df
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1728,7 +1609,7 @@ class ChpNode(GenericNode):
     ]
     DEFAULT_OPERATIONS = 'add,chp_ef_split'
 
-    def _operation_chp_ef_split(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_chp_ef_split(self, df: PathsDataFrame | None) -> OperationReturn:
         if df is None:
             raise NodeError(self, "Node must receive average CHP fuel emission factors.")
 
@@ -1775,16 +1656,16 @@ class ChpNode(GenericNode):
         ]).drop(drops).add_to_index('energy_carrier')
         df = df_el.paths.concat_vertical(df_heat)
 
-        return df, baskets
+        return df
 
-    def _energy_method(self, df: ppl.PathsDataFrame) -> ppl.PathsDataFrame:
+    def _energy_method(self, df: PathsDataFrame) -> PathsDataFrame:
         df = df.with_columns([
             pl.lit(1.0).alias('z_el'),
             pl.lit(1.0).alias('z_heat'),
         ])
         return df
 
-    def _exergetic_method(self, df: ppl.PathsDataFrame) -> ppl.PathsDataFrame:
+    def _exergetic_method(self, df: PathsDataFrame) -> PathsDataFrame:
         t_supply = self.get_parameter_value_float('t_supply', required=True)
         t_return = self.get_parameter_value_float('t_return', required=True)
         z_heat = 1 - t_return / t_supply
@@ -1794,7 +1675,7 @@ class ChpNode(GenericNode):
         ])
         return df
 
-    def _bisko_method(self, df: ppl.PathsDataFrame) -> ppl.PathsDataFrame:
+    def _bisko_method(self, df: PathsDataFrame) -> PathsDataFrame:
         t_supply = self.get_parameter_value_float('t_supply', required=True)
         t_return = 283
         z_heat = 1 - t_return / t_supply
@@ -1804,7 +1685,7 @@ class ChpNode(GenericNode):
         ])
         return df
 
-    def _efficiency_method(self, df: ppl.PathsDataFrame) -> ppl.PathsDataFrame:
+    def _efficiency_method(self, df: PathsDataFrame) -> PathsDataFrame:
         n_el = self.get_parameter_value_float('electricity_reference_efficiency', required=True)
         n_heat = self.get_parameter_value_float('heat_reference_efficiency', required=True)
         df = df.with_columns([
@@ -1825,7 +1706,7 @@ class ConstantNode(GenericNode):
     ]
     DEFAULT_OPERATIONS = 'constant,add'
 
-    def _operation_constant(self, df: ppl.PathsDataFrame | None, baskets: BasketsDict) -> OperationReturn:
+    def _operation_constant(self, df: PathsDataFrame | None) -> OperationReturn:
         constant = self.get_parameter_value('constant', required=False, units=True)
         if constant is None:
             const_bool = self.get_typed_parameter_value('condition', bool, required=True)
@@ -1839,7 +1720,7 @@ class ConstantNode(GenericNode):
         if last_historical_year is None or last_historical_year < start_year:
             last_historical_year = start_year
         years = range(start_year, end_year + 1)
-        df = ppl.PathsDataFrame({YEAR_COLUMN: years})
+        df = PathsDataFrame({YEAR_COLUMN: years})
         df._units = {}
         df._primary_keys = [YEAR_COLUMN]
         df = df.with_columns([
@@ -1847,7 +1728,7 @@ class ConstantNode(GenericNode):
             (pl.col(YEAR_COLUMN) > pl.lit(last_historical_year)).alias(FORECAST_COLUMN),
         ]).set_unit(VALUE_COLUMN, str(constant.units))
 
-        return df, baskets
+        return df
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
