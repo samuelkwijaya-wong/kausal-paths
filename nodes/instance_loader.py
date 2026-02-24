@@ -1154,8 +1154,11 @@ class InstanceLoader:
         agc_all = self.config.get('action_groups', [])
         agcs = []
         for agc in agc_all:
-            assert 'name' in agc
-            ag = ActionGroup(agc['id'], self.make_trans_string(agc, 'name'), agc.get('color'))
+            ag = ActionGroup(
+                agc['id'],
+                self.make_trans_string(agc, 'name', required=True),
+                agc.get('color'),
+            )
             agcs.append(ag)
 
         instance_attrs = [

@@ -67,7 +67,7 @@ class DetermineInstanceContextExtension(PathsSchemaExtension):
             raise GraphQLError('Locale directive missing lang argument', directive)
 
         if lang not in ic.supported_languages:
-            raise GraphQLError('unsupported language: %s' % lang, directive)
+            raise GraphQLError('unsupported language: %s. Did you run --update-instance?' % lang, directive)
         return lang
 
     def get_ic_queryset(self) -> InstanceConfigQuerySet:
@@ -141,7 +141,7 @@ class DetermineInstanceContextExtension(PathsSchemaExtension):
         if not locale:
             locale = ic.primary_language
         elif locale not in ic.supported_languages:
-            raise GraphQLError('unsupported language: %s' % locale, directive)
+            raise GraphQLError('unsupported language: %s. Did you run --update-instance?' % locale, directive)
         return ic, locale
 
     def process_instance_headers(self) -> InstanceConfig | None:
@@ -211,7 +211,7 @@ class DetermineInstanceContextExtension(PathsSchemaExtension):
 
 class ActivateInstanceContextExtension(PathsSchemaExtension):
     def activate_language(self, lang: str):
-        return cast('AbstractContextManager', translation.override(lang))
+        return cast('AbstractContextManager[None, None]', translation.override(lang))
 
     def set_instance_scope(self) -> None:
         scope = sentry_sdk.get_current_scope()
@@ -240,8 +240,7 @@ class ActivateInstanceContextExtension(PathsSchemaExtension):
 
         # Tell the custom scenario about the user setting so that
         # it can locate the customized parameters.
-        if context.custom_scenario is not None:
-            context.custom_scenario.set_storage(storage)
+        context.custom_scenario.set_storage(storage)
 
         if scenario is None:
             scenario = context.get_default_scenario()
@@ -261,7 +260,7 @@ class ActivateInstanceContextExtension(PathsSchemaExtension):
         context.activate_scenario(scenario)
 
     @contextmanager
-    def instance_context(self, operation: OperationDefinitionNode):
+    def instance_context(self, _operation: OperationDefinitionNode):
         context = None
         ctx = self.get_context()
         perf = ctx.graphql_perf
