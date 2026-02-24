@@ -9,9 +9,10 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-01-02 15:33+0100\n"
-"PO-Revision-Date: 2025-12-23 18:21+0000\n"
-"Last-Translator: Jan-Erik Sundman <jan-erik.sundman@kausal.tech>\n"
-"Language-Team: Finnish <https://weblate.kausal.tech/projects/paths/django/fi/>\n"
+"PO-Revision-Date: 2026-02-24 13:21+0000\n"
+"Last-Translator: Matias Wargelin <matias.wargelin@kausal.tech>\n"
+"Language-Team: Finnish <https://weblate.kausal.tech/projects/paths/django/"
+"fi/>\n"
 "Language: fi\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -20,9 +21,8 @@ msgstr ""
 "X-Generator: Weblate 5.15.1\n"
 
 #: admin_site/api.py
-#, fuzzy
 msgid "Invalid email address"
-msgstr "sähköpostiosoite"
+msgstr "Virheellinen sähköpostiosoite"
 
 #: admin_site/api.py
 msgid "No user found with this email address. Ask your administrator to create an account for you."
@@ -43,10 +43,8 @@ msgid "Cannot remove dimension \"%(dimension)s\" because it is used by %(count)d
 msgstr ""
 
 #: admin_site/dataset_admin.py
-#, fuzzy
-#| msgid "Descriptive name of the dataset schema"
 msgid "At least one metric must be defined for the dataset schema."
-msgstr "Kuvaava nimi tietoaineistomallille"
+msgstr "Tietoaineston skeemalle täytyy määritellä ainakin yksi metriikka."
 
 #: admin_site/dataset_admin.py
 #, python-format
@@ -54,9 +52,8 @@ msgid "Cannot remove metric \"%(metric)s\" because it is used by %(count)d data 
 msgstr ""
 
 #: admin_site/dataset_admin.py
-#, fuzzy
 msgid "Dataset schemas"
-msgstr "Tietolähteet"
+msgstr "Tietoaineistojen skeemat"
 
 #: admin_site/perms.py
 msgid "General admin"
@@ -452,23 +449,20 @@ msgid "Node"
 msgstr "Solmu"
 
 #: nodes/blocks.py
-#, fuzzy
 msgid "Outcome node"
-msgstr "Tulossivu"
+msgstr "Lopputulemasolmu"
 
 #: nodes/buildings.py nodes/explanations.py
 msgid "Floor area node takes in actions and calculates the floor area impacted."
 msgstr ""
 
 #: nodes/choosers.py
-#, fuzzy
 msgid "Choose a node"
-msgstr "Kustannussolmu"
+msgstr "Valitse solmu"
 
 #: nodes/choosers.py
-#, fuzzy
 msgid "Choose another node"
-msgstr "Valitse instanssi"
+msgstr "Valitse toinen solmu"
 
 #: nodes/costs.py
 msgid ""
@@ -508,17 +502,16 @@ msgid "Calculate CO2 equivalents based on 100-year global warming potential."
 msgstr ""
 
 #: nodes/explanations.py
-#, fuzzy
 msgid "addition"
-msgstr "Kuvaus"
+msgstr "yhteenlasku"
 
 #: nodes/explanations.py
 msgid "addition from incoming dimensions"
-msgstr ""
+msgstr "yhteenlasku tulevista dimensioista"
 
 #: nodes/explanations.py
 msgid "addition to existing dimensions"
-msgstr ""
+msgstr "yhteenlasku olemassa oleviin dimensioihin"
 
 #: nodes/explanations.py
 msgid "coalescing"
@@ -1739,7 +1732,7 @@ msgstr ""
 
 #: orgs/wagtail_hooks.py
 msgid "Edit"
-msgstr ""
+msgstr "Muokkaa"
 
 #: orgs/wagtail_hooks.py
 #, python-format
@@ -1795,10 +1788,8 @@ msgid "Break down the value into its components"
 msgstr ""
 
 #: pages/blocks.py
-#, fuzzy
-#| msgid "Action list page"
 msgid "Action impact"
-msgstr "Toimintoluettelosivu"
+msgstr "Toimenpiteen vaikutus"
 
 #: pages/blocks.py
 msgid "Visualize the impact of actions in a scenario"
