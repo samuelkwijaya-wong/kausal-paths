@@ -188,8 +188,6 @@ NODE_CLASS_DESCRIPTIONS: dict[str, NodeInfo] = {
         the costs and savings from total renovations sum up to a meaningful
         impact on nodes that are given per floor area.
         """)),
-    'BuildingEnergySavingActionUs': NodeInfo(_(
-        """BuildingEnergySavingAction with U.S. units and natural gas instead of heat.""")),
     'CfFloorAreaAction': NodeInfo(_(
         """
         Action that has an energy saving effect on building stock (per floor area).

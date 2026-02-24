@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from django.utils.translation import gettext_lazy as _
 
@@ -146,7 +146,7 @@ class StockReplacementAction(DatasetAction):
     allow_null_categories = True
 
     # ---------------------------------------------------------------------------------------------
-    def drop_unnecessary_levels(self, df: ppl.PathsDataFrame, droplist: list) -> ppl.PathsDataFrame:
+    def drop_unnecessary_levels(self, df: ppl.PathsDataFrame, droplist: list[str]) -> ppl.PathsDataFrame:
         drops = [d for d in droplist if d in df.columns]
 
         for col in list(set(df.columns) - set(drops)):
@@ -549,7 +549,7 @@ class DatasetDifferenceAction2(DatasetAction):
     a multiplier.
     """)
 
-    allowed_parameters: ClassVar[list[Parameter]] = [
+    allowed_parameters: ClassVar[list[Parameter[Any]]] = [
         *DatasetAction.allowed_parameters,
         BoolParameter(local_id='relative_goal'),
     ]
@@ -748,7 +748,7 @@ class DatasetRelationAction(DatasetAction, GenericNode):
 
         return None
 
-    def _operation_apply_relationship(self, df: ppl.PathsDataFrame | None, baskets: dict, **kwargs) -> tuple:
+    def _operation_apply_relationship(self, df: ppl.PathsDataFrame, **_kwargs) -> ppl.PathsDataFrame:
         """
         Set this node's enabled state.
 
@@ -757,11 +757,12 @@ class DatasetRelationAction(DatasetAction, GenericNode):
         """
 
         # Validate there's exactly one input node in 'other' basket
-        if len(baskets['other']) != 1:
+        nodes = self.get_input_nodes(tag='other')
+        if len(nodes) != 1 or not isinstance(nodes[0], ActionNode):
             raise NodeError(self, "Relationship node requires exactly one upstream action node.")
 
         # Get the upstream action node
-        action_a: ActionNode = baskets['other'][0]
+        action_a: ActionNode = nodes[0]
 
         # Get relationship type from tags
         relationship = self._find_relationship_from_tags(action_a)
@@ -788,8 +789,7 @@ class DatasetRelationAction(DatasetAction, GenericNode):
 
         # If the rule returns None, we don't change the enabled state
 
-        baskets['other'] = []  # Mark nodes as processed
-        return df, baskets
+        return df
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -824,13 +824,12 @@ class DatasetRelationAction(DatasetAction, GenericNode):
         df = self.apply_multiplier(df, required=False, units=True)
         # df = self.add_and_multiply_input_nodes(df)
         df = self.maybe_drop_nulls(df)
-        df = df.ensure_unit(VALUE_COLUMN, self.unit)  # type: ignore
+        df = df.ensure_unit(VALUE_COLUMN, self.unit)
         return df
 
     def compute_effect(self) -> ppl.PathsDataFrame:
         df = self._compute()
-        baskets = self._get_input_baskets(self.input_nodes)
-        df, _ = self._operation_apply_relationship(df, baskets)
+        df = self._operation_apply_relationship(df)
 
         if not self.is_enabled():
             df = df.with_columns(pl.lit(self.no_effect_value).alias(VALUE_COLUMN))
