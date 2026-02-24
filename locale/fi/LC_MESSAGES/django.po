@@ -9,9 +9,10 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-24 15:25+0200\n"
-"PO-Revision-Date: 2026-02-24 13:21+0000\n"
+"PO-Revision-Date: 2026-02-24 15:21+0000\n"
 "Last-Translator: Matias Wargelin <matias.wargelin@kausal.tech>\n"
-"Language-Team: Finnish <https://weblate.kausal.tech/projects/paths/django/fi/>\n"
+"Language-Team: Finnish <https://weblate.kausal.tech/projects/paths/django/"
+"fi/>\n"
 "Language: fi\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -527,72 +528,76 @@ msgstr "yhteenlasku olemassa oleviin dimensioihin"
 
 #: nodes/explanations.py
 msgid "coalesce"
-msgstr ""
+msgstr "yhdistyminen"
 
 #: nodes/explanations.py
 msgid "multiplication"
-msgstr ""
+msgstr "kertolasku"
 
 #: nodes/explanations.py
 msgid "other operations"
-msgstr ""
+msgstr "muut toiminnot"
 
 #: nodes/explanations.py
-#, fuzzy
 msgid "skip dimension test"
-msgstr "Ulottuvuudet"
+msgstr "ohita dimensiotesti"
 
 #: nodes/explanations.py
 msgid "split by existing shares"
-msgstr ""
+msgstr "jaoteltu olemassa olevien osuuksien mukaan"
 
 #: nodes/explanations.py
 msgid "split evenly to categories"
-msgstr ""
+msgstr "jaettu tasaisesti kategorioihin"
 
 #: nodes/explanations.py
 msgid "use as shares"
-msgstr ""
+msgstr "käytä osakkeina"
 
 #: nodes/explanations.py
 msgid "use as totals"
-msgstr ""
+msgstr "käytä kokonaismäärinä"
 
 #: nodes/explanations.py
 msgid "unknown operation"
-msgstr ""
+msgstr "tuntematon toiminto"
 
 #: nodes/explanations.py
 msgid "skip"
-msgstr ""
+msgstr "ohita"
 
 #: nodes/explanations.py
 msgid "Get and prepare each dataset, then add them together."
-msgstr ""
+msgstr "Hae ja valmistele kukin tietoaineisto ja lisää ne sitten yhteen."
 
 #: nodes/explanations.py
 msgid "Add input node values (even if the units don't match with the node units)."
 msgstr ""
+"Lisää syöttösolmun arvot (vaikka yksiköt eivät vastaa solmun yksiköitä)."
 
 #: nodes/explanations.py
 msgid "Logical AND: min(a, b). Warns if inputs deviate from 0 or 1 (see node explanation)."
 msgstr ""
+"Looginen JA: min(a, b). Varoittaa, jos syötteet poikkeavat arvosta 0 tai 1 "
+"(katso solmun selitys)."
 
 #: nodes/explanations.py
 msgid "Take the arithmetic inverse of the values (-x)."
-msgstr ""
+msgstr "Laske arvojen aritmeettinen käänteisluku (-x)."
 
 #: nodes/explanations.py
 msgid "Makes all years up to maximum historical year non-forecasts."
-msgstr ""
+msgstr "Tekee kaikista vuosista enintään historiallisen vuoden epäennusteita."
 
 #: nodes/explanations.py
 msgid "Take the complement of the dimensionless values (1-x)."
-msgstr ""
+msgstr "Ota dimensioimattomien arvojen komplementti (1-x)."
 
 #: nodes/explanations.py
 msgid "Take the cumulative product of the dimensionless complement values over time."
 msgstr ""
+"Laske dimensioimattomien komplementtiarvojen kumulatiivinen tulo ajan "
+"kuluessa."
 
 #: nodes/explanations.py
 msgid "Get and concatenate datasets vertically, only then prepare the output."
@@ -609,10 +614,11 @@ msgstr ""
 #: nodes/explanations.py
 msgid "Take the difference over time (i.e. annual changes)"
 msgstr ""
+"Ota huomioon ajan mittaan tapahtuneet muutokset (eli vuosittaiset muutokset)"
 
 #: nodes/explanations.py
 msgid "Convert NaNs to zeros."
-msgstr ""
+msgstr "Muunna NaN-arvot nolliksi."
 
 #: nodes/explanations.py
 msgid "Take the expected value over the uncertainty dimension."
