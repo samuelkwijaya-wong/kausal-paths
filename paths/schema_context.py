@@ -240,7 +240,8 @@ class ActivateInstanceContextExtension(PathsSchemaExtension):
 
         # Tell the custom scenario about the user setting so that
         # it can locate the customized parameters.
-        context.custom_scenario.set_storage(storage)
+        if context.custom_scenario is not None:
+            context.custom_scenario.set_storage(storage)
 
         if scenario is None:
             scenario = context.get_default_scenario()
