@@ -1,14 +1,15 @@
-id: muenchen-demo
+id: m-demo
 default_language: de
-supported_languages: []
-site_url: https://muenchen-demo.paths.staging.kausal.tech
+supported_languages: [en]
+site_url: https://m-demo.paths.staging.kausal.tech
 dataset_repo:
   url: https://github.com/kausaltech/dvctest.git
   commit: 909a934f279d51078fd57ac7336ea972576cc6ce
   dvc_remote: kausal-s3
-name_de: M-Stadt Klimaschutz-Monitor Treibhausgasinventar
-owner: Stadt Demo
-theme_identifier: de-muenchen
+name_de: Stadt M Klimaschutz-Monitor Treibhausgasinventar
+name_en: City M Climate Protection Monitor Greenhouse Gas Inventory
+owner: Stadt M
+theme_identifier: default
 target_year: 2045
 model_end_year: 2050
 reference_year: 1995
@@ -24,6 +25,7 @@ features:
 params:
 - id: weather_correction
   label_de: Wetterkorrektur durchführen?
+  label_en: Apply weather correction?
   value: true
   is_customizable: true
   is_visible: true
@@ -31,16 +33,20 @@ params:
 action_groups:
 
 - id: stationary
-  name: Wärme
+  name_de: Wärme
+  name_en: Heating
   color: '#989898'
 - id: electricity
-  name: Strom
+  name_de: Strom
+  name_en: Electricity
   color: '#007C78'
 - id: transport
-  name: Verkehr
+  name_de: Verkehr
+  name_en: Transport
   color: '#0505A0'
 - id: afolu
-  name: AFOLU
+  name_de: AFOLU
+  name_en: AFOLU
   color: '#cccccc'
 
 impact_overviews:
@@ -69,87 +75,123 @@ impact_overviews:
   indicator_unit: MEUR
   outcome_dimension: cost_type
   label_de: Cost-benefit
+  label_en: Cost-benefit
 
 - graph_type: return_on_investment_gross
   cost_node: aggregated_implementation_cost
   effect_node: aggregate_total_cost_wo_impl
   indicator_unit: '%'
   label_de: Return on investment
+  label_en: Return on investment
 
 dimensions:
 
 - id: cost_type
   label_de: Cost Type
+  label_en: Cost Type
   categories:
   - id: energy_costs
     label_de: Energy Costs
+    label_en: Energy Costs
   - id: investment_costs
     label_de: Investment Costs
+    label_en: Investment Costs
   - id: investment
     label_de: Investment
+    label_en: Investment
   - id: maintenance
     label_de: Maintenance
+    label_en: Maintenance
   - id: capex
     label_de: CAPEX (capital expenditure)
+    label_en: CAPEX (capital expenditure)
   - id: capex_levelised
     label_de: CAPEX (levelised)
+    label_en: CAPEX (levelised)
   - id: opex
     label_de: OPEX (operational expenditure)
+    label_en: OPEX (operational expenditure)
     aliases: [operation_cost, Operation Cost]
   - id: maintenance_costs
     label_de: Maintenance Costs
+    label_en: Maintenance Costs
   - id: sales
     label_de: Sales income
+    label_en: Sales income
   - id: air_pollution
     label_de: Air pollution
+    label_en: Air pollution
     aliases: [air_quality]
   - id: noise
     label_de: Noise
+    label_en: Noise
   - id: accidents
     label_de: Accidents
+    label_en: Accidents
   - id: health
     label_de: Health
+    label_en: Health
   - id: co2_cost
     label_de: CO2 Cost
+    label_en: CO2 Cost
   - id: aesthetics
     label_de: Aesthetics and amenity
+    label_en: Aesthetics and amenity
   - id: shading
     label_de: Shading
+    label_en: Shading
   - id: water_regulation
     label_de: Water regulation
+    label_en: Water regulation
     aliases: [water_regulations]
   - id: forest_management
     label_de: Forest management
+    label_en: Forest management
   - id: bus_costs
     label_de: Bus costs
+    label_en: Bus costs
   - id: homecharging_infrastructure
     label_de: Home-charging infrastructure
+    label_en: Home-charging infrastructure
   - id: public_and_workplace_infrastructure
     label_de: Public & workplace infrastructure
+    label_en: Public & workplace infrastructure
   - id: charging_infrastructure_costs
     label_de: Charging infrastructure costs
+    label_en: Charging infrastructure costs
   - id: vehicle_costs
     label_de: Vehicle costs
+    label_en: Vehicle costs
   - id: infrastructure_costs
     label_de: Infrastructure costs
+    label_en: Infrastructure costs
   - id: network
     label_de: Network
+    label_en: Network
   - id: fuel
     label_de: Fuel costs
+    label_en: Fuel costs
   - id: tires
     label_de: Tire costs
+    label_en: Tire costs
   - id: depreciation
     label_de: Depreciation costs
+    label_en: Depreciation costs
   - id: labour_costs
     label_de: Labour costs
+    label_en: Labour costs
   - id: industry_ippu
     label_de: Industry (IPPU)
+    label_en: Industry (IPPU)
   - id: agriculture_afolu
     label_de: Agriculture (AFOLU)
+    label_en: Agriculture (AFOLU)
   - id: other_sources
     label_de: Other sources
+    label_en: Other sources
   - id: grid_stability
     label_de: Storage, grid stability etc.
+    label_en: Storage, grid stability etc.
 
 - id: energietrager
   label_en: Energy Carriers
@@ -259,14 +301,19 @@ dimensions:
   categories:
   - id: industrie
     label_de: Industrie
+    label_en: Industry
   - id: kommunale_einrichtungen
     label_de: Kommunale Einrichtungen
+    label_en: Municipal facilities
   - id: gewerbe_handel_dienstleistungen
     label_de: Gewerbe, Handel, Dienstleistungen
+    label_en: Commerce, trade, services
   - id: verkehr
     label_de: Verkehr
+    label_en: Transport
   - id: private_haushalte
     label_de: Private Haushalte
+    label_en: Households
   - id: i
     label_en: I Stationary
     label_de: I Stationär
@@ -492,6 +539,7 @@ emission_sectors:
   is_outcome: true
   goals:
   - label_de: Ziel Netto-Emissionen
+    label_en: Net emissions target
     default: true
     is_main_goal: true
     values:
@@ -667,6 +715,7 @@ nodes:
 
 - id: carbon_budget
   name_de: Kohlenstoffbudget
+  name_en: Carbon budget
   type: generic.GenericNode
   quantity: emissions
   unit: Mt
@@ -677,6 +726,7 @@ nodes:
     tags: [cumulative]
   goals:
   - label_de: Kohlenstoffbudget
+    label_en: Carbon budget
     default: true
     is_main_goal: true
     values:
@@ -685,6 +735,7 @@ nodes:
 
 - id: weather_correction
   name_de: Witterungsbereinigung
+  name_en: Weather correction
   type: generic.GenericNode
   quantity: ratio
   unit: dimensionless
@@ -726,6 +777,7 @@ nodes:
 
 - id: i11_residential_fuel_consumption_emissions
   name_de: Emissionen aus Wärmeenergie (ohne Fernwärme)
+  name_en: Emissions from heating energy (excluding district heating)
   type: simple.MultiplicativeNode
   quantity: emissions
   unit: kt/a
@@ -761,6 +813,7 @@ nodes:
 
 - id: i12_residential_grid_energy_consumption
   name_de: Netzenergieverbrauch Wohngebäude
+  name_en: Grid energy consumption residential buildings
   type: generic.GenericNode
   quantity: energy
   unit: MWh/a
@@ -780,6 +833,7 @@ nodes:
 
 - id: i12_residential_grid_energy_consumption_emissions
   name_de: Emissionen aus Fernwärme
+  name_en: Emissions from district heating
   type: simple.MultiplicativeNode
   quantity: emissions
   unit: kt/a
@@ -794,6 +848,7 @@ nodes:
 
 - id: i12_residential_grid_energy_emission_factor
   name_de: Emissionsfaktor Netzenergieverbrauch Wohngebäude
+  name_en: Emission factor grid energy residential buildings
   type: generic.GenericNode
   quantity: emission_factor
   unit: t/MWh
@@ -913,6 +968,7 @@ nodes:
 
 - id: ii11_onroad_transport_fuel_consumption_emissions
   name_de: Emissionen aus Brennstoffverbrauch Verkehr
+  name_en: Emissions from fuel consumption transport
   type: simple.MultiplicativeNode
   quantity: emissions
   unit: kt/a
@@ -948,7 +1004,7 @@ nodes:
 
 - id: ii12_onroad_transport_grid_energy_consumption
   name_de: Stromverbrauch ÖPNV
-  name_en: Electricty Consumption Public Transport
+  name_en: Electricity Consumption Public Transport
   type: generic.GenericNode
   quantity: energy
   unit: MWh/a
@@ -968,6 +1024,7 @@ nodes:
 
 - id: ii12_onroad_transport_grid_energy_consumption_emissions
   name_de: Emissionen aus Stromverbrauch ÖPNV
+  name_en: Emissions from electricity consumption public transport
   type: simple.MultiplicativeNode
   quantity: emissions
   unit: kt/a
@@ -1018,6 +1075,7 @@ nodes:
 
 - id: i12_residential_grid_energy_total_emissions
   name_de: Emissionen aus Fernwärme
+  name_en: Emissions from district heating
   type: simple.AdditiveNode
   quantity: emissions
   unit: kt/a
@@ -1032,6 +1090,7 @@ nodes:
 
 - id: i1_residential_total_emissions
   name_de: Gesamtemissionen Wärmesektor
+  name_en: Total emissions heating sector
   type: simple.AdditiveNode
   quantity: emissions
   unit: kt/a
@@ -1046,6 +1105,7 @@ nodes:
 
 - id: i42_energy_grid_energy_total_emissions
   name_de: Gesamtemissionen Stromsektor
+  name_en: Total emissions electricity sector
   type: simple.AdditiveNode
   quantity: emissions
   unit: kt/a
@@ -1122,6 +1182,7 @@ nodes:
 
 - id: ii1_onroad_transport_total_emissions
   name_de: Gesamtemissionen Verkehrssektor
+  name_en: Total emissions transport sector
   type: simple.AdditiveNode
   quantity: emissions
   unit: kt/a
@@ -1152,6 +1213,7 @@ nodes:
 
 - id: i_stationary_energy
   name_de: Stationärer Energieverbrauch
+  name_en: Stationary energy consumption
   type: simple.AdditiveNode
   quantity: energy
   unit: MWh/a
@@ -1170,6 +1232,7 @@ nodes:
 
 - id: electricity_consumption_without_heating
   name_de: Stromverbrauch (ohne Heizung)
+  name_en: Electricity consumption (excluding heating)
   type: simple.AdditiveNode
   quantity: energy
   unit: MWh/a
@@ -1225,6 +1288,7 @@ nodes:
 
 - id: exponential_change
   name_de: Exponential change
+  name_en: Exponential change
   type: costs.ExponentialNode
   quantity: energy
   unit: GWh/a
@@ -1243,6 +1307,7 @@ nodes:
 
 - id: population
   name_de: Einwohner
+  name_en: Population
   type: generic.GenericNode
   quantity: population
   unit: cap
@@ -1683,20 +1748,28 @@ actions:
 pages:
 - id: home
   name_de: Klimaschutz-Monitor Treibhausgasinventar
+  name_en: Climate Protection Monitor Greenhouse Gas Inventory
   path: /
   type: emission
   outcome_node: net_emissions
   lead_title: Zielwerte Klimaschutz
+  lead_title_en: Climate protection targets
   lead_paragraph: Die Treibhausgasemissionen sinken kontinuierlich, pro Kopf 
     relativ deutlich. In der Vergangenheit konnten die Minderungsziele 
     weitgehend erreicht werden. Die hier abgebildeten Ziele des Masterplan 100% 
     Klimaschutz sind jedoch noch ambitionierter als die bisherigen.
+  lead_paragraph_en: Greenhouse gas emissions are falling steadily, and 
+    relatively sharply per capita. In the past, the reduction targets have 
+    largely been met. The targets shown here from the Masterplan 100% Climate 
+    Protection are however even more ambitious than previous ones.
 
 scenarios:
 - id: baseline
   name_de: Business as Usual
+  name_en: Business as Usual
 
 - id: default
   default: true
   name_de: Klimaschutzplan
+  name_en: Climate protection plan
   all_actions_enabled: true

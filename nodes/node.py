@@ -113,7 +113,7 @@ class NodeMetric:
             self.column_id = None  # type: ignore
 
     @classmethod
-    def from_config(cls, config: dict) -> Self:
+    def from_config(cls, config: dict[str, Any]) -> Self:
         """Create a NodeMetric instance from a configuration dictionary."""
         return cls(
             unit=config['unit'],
@@ -287,10 +287,10 @@ class Node:
     global_parameters: list[str] = []
     "List of identifiers for global parameters that affect the node's output."
 
-    parameters: dict[str, Parameter]
+    parameters: dict[str, Parameter[Any]]
     "Parameters with their values."
 
-    allowed_parameters: ClassVar[Sequence[Parameter]]
+    allowed_parameters: ClassVar[Sequence[Parameter[Any]]]
     "All allowed parameters for this node class."
 
     _baseline_values: ppl.PathsDataFrame | None
@@ -432,7 +432,7 @@ class Node:
         is_visible: bool = True,
         is_outcome: bool = False,
         target_year_goal: float | None = None,
-        goals: dict | None = None,
+        goals: dict[str, Any] | None = None,
         allow_nulls: bool = False,
         input_datasets: list[Dataset] | None = None,
         output_dimension_ids: list[str] | None = None,
@@ -517,14 +517,14 @@ class Node:
 
         super().__init__()
 
-    def add_parameter(self, param: Parameter):
+    def add_parameter(self, param: Parameter[Any]):
         if param.local_id in self.parameters:
             msg = f'Local parameter {param.local_id} already defined for node {self.id}'
             raise Exception(msg)
         self.parameters[param.local_id] = param
         param.set_node(self)
 
-    def notify_parameter_change(self, param: Parameter):
+    def notify_parameter_change(self, _param: Parameter[Any]):
         """Notify the node that an input parameter changed."""
         # Propagate change notification to downstream nodes
         self.hasher.mark_modified()
@@ -533,13 +533,13 @@ class Node:
         yield from self.parameters.values()
 
     @overload
-    def get_parameter(self, local_id: str, *, required: Literal[True] = True) -> Parameter: ...
+    def get_parameter(self, local_id: str, *, required: Literal[True] = True) -> Parameter[Any]: ...
 
     @overload
-    def get_parameter(self, local_id: str, *, required: Literal[False]) -> Parameter | None: ...
+    def get_parameter(self, local_id: str, *, required: Literal[False]) -> Parameter[Any] | None: ...
 
     @overload
-    def get_parameter(self, local_id: str, *, required: bool) -> Parameter | None: ...
+    def get_parameter(self, local_id: str, *, required: bool) -> Parameter[Any] | None: ...
 
     def get_parameter(self, local_id: str, required: bool = True):
         """Get the parameter with the given local id from this node's parameters."""
@@ -676,7 +676,7 @@ class Node:
             return param.value * param.unit
         return self.context.get_parameter_value(id, required=required)
 
-    def set_parameter_value(self, local_id: str, value: object | None, force: bool = False):
+    def set_parameter_value(self, local_id: str, value: object | None, _force: bool = False):
         # if force:  # FIXME if force, create this parameter
         #     self.parameters[local_id] = Parameter()
         if local_id not in self.parameters:
@@ -881,7 +881,7 @@ class Node:
     def _get_output_for_target(  # noqa: C901, PLR0912, PLR0915
             self, df: ppl.PathsDataFrame,
             target_node: Node,
-            skip_dim_test: bool = False
+            skip_dim_test: bool = False  # pyright: ignore[reportUnusedParameter]
         ) -> ppl.PathsDataFrame:
         for edge in self.edges:
             if edge.output_node == target_node:
@@ -1032,7 +1032,7 @@ class Node:
             if dim_id not in meta.primary_keys:
                 raise NodeError(self, "Dimension column '%s' not included in index" % dim_id)
             dt = df[dim_id].dtype
-            if dt not in (pl.Utf8, pl.Categorical):
+            if dt not in (pl.Utf8, pl.Categorical):  # pyright: ignore[reportUnnecessaryContains]
                 raise NodeError(self, "Dimension column '%s' is of wrong type (%s)" % (dim_id, dt))
 
             if dim.is_internal or dim_id == UNCERTAINTY_COLUMN:
@@ -1308,7 +1308,7 @@ class Node:
             open_nodes += current.input_nodes
         return result
 
-    def on_scenario_created(self, scenario: Scenario):
+    def on_scenario_created(self, _scenario: Scenario):
         """Called when a scenario is created with this node among the nodes to be notified."""  # noqa: D401
         pass
 
@@ -1369,14 +1369,22 @@ class Node:
     def get_baseline_values(self) -> ppl.PathsDataFrame:
         if self._baseline_values is not None:
             return self._baseline_values
-        if self.context.active_scenario.id != 'baseline':
-            baseline = self.context.scenarios['baseline']
-            with baseline.override():
+        try:
+            self._computing_baseline = True
+            if self.context.active_scenario.id != 'baseline':
+                baseline = self.context.scenarios['baseline']
+                with baseline.override():
+                    df = self.get_output_pl()
+            else:
                 df = self.get_output_pl()
-        else:
-            df = self.get_output_pl()
-        self._baseline_values = df
-        return df
+        finally:
+            self._computing_baseline = False
+        # For scenario_impact nodes, _baseline_values was set in _operation_scenario_impact to the pre-impact result
+        ops = self.get_parameter_value_str('operations', required=False) or ''
+        if 'scenario_impact' not in ops:
+            self._baseline_values = df
+        assert self._baseline_values is not None  # set above or by _operation_scenario_impact
+        return self._baseline_values
 
     def baseline_values_calculated(self) -> bool:
         return self._baseline_values is not None

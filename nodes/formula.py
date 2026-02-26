@@ -285,77 +285,109 @@ class FormulaNode(Node):
         # Handle non-PathsExt functions
         return self._handle_custom_function(func, node, varss, df)
 
+    _CUSTOM_FUNC_HANDLERS: dict[str, str] = {
+        'convert_gwp': '_custom_convert_gwp',
+        'sum_dim': '_custom_sum_dim',
+        'prod_dim': '_custom_prod_dim',
+        'zero_fill': '_custom_zero_fill',
+        'select_port': '_custom_select_port',
+        'float': '_custom_float',
+        'coalesce_df': '_custom_coalesce_df',
+        'max': '_custom_max_min',
+        'min': '_custom_max_min',
+        'and': '_custom_and_or',
+        'or': '_custom_and_or',
+    }
+
     def _handle_custom_function(
         self, func: str, node: ast.Call, varss: EvalVars, df: EvalOutput
     ) -> EvalOutput:
         """Handle custom functions not in PathsExt.OPERATIONS."""
+        method_name = self._CUSTOM_FUNC_HANDLERS.get(func)
+        if method_name is None:
+            raise NotImplementedError(f"Unknown function: {func}")
+        return getattr(self, method_name)(func, node, varss, df)
 
-        if func == 'convert_gwp':
-            assert isinstance(df, PDF)
-            return convert_to_co2e(df, 'greenhouse_gases')
+    def _custom_convert_gwp(
+        self, _func: str, _node: ast.Call, _varss: EvalVars, df: EvalOutput
+    ) -> EvalOutput:
+        assert isinstance(df, PDF)
+        return convert_to_co2e(df, 'greenhouse_gases')
 
-        if func == 'sum_dim':
-            assert len(node.args) == 2
-            assert isinstance(df, PDF)
-            dim_arg = node.args[1]
-            assert isinstance(dim_arg, ast.Name)
-            assert isinstance(dim_arg.id, str)
-            return df.paths.sum_over_dims(dim_arg.id)
+    def _custom_sum_dim(
+        self, _func: str, node: ast.Call, _varss: EvalVars, df: EvalOutput
+    ) -> EvalOutput:
+        assert len(node.args) == 2
+        assert isinstance(df, PDF)
+        dim_arg = node.args[1]
+        assert isinstance(dim_arg, ast.Name)
+        assert isinstance(dim_arg.id, str)
+        return df.paths.sum_over_dims(dim_arg.id)
 
-        if func == 'prod_dim':
-            assert len(node.args) == 2
-            assert isinstance(df, PDF)
-            dim_arg = node.args[1]
-            assert isinstance(dim_arg, ast.Name)
-            assert isinstance(dim_arg.id, str)
-            return df.paths.prod_over_dims(dim_arg.id)
+    def _custom_prod_dim(
+        self, _func: str, node: ast.Call, _varss: EvalVars, df: EvalOutput
+    ) -> EvalOutput:
+        assert len(node.args) == 2
+        assert isinstance(df, PDF)
+        dim_arg = node.args[1]
+        assert isinstance(dim_arg, ast.Name)
+        assert isinstance(dim_arg.id, str)
+        return df.paths.prod_over_dims(dim_arg.id)
 
-        if func == 'zero_fill':
-            assert isinstance(df, PDF)
-            df = df.paths.to_wide()
-            meta = df.get_meta()
-            zdf = df.fill_null(0)
-            return ppl.to_ppdf(zdf, meta=meta).paths.to_narrow()
+    def _custom_zero_fill(
+        self, _func: str, _node: ast.Call, _varss: EvalVars, df: EvalOutput
+    ) -> EvalOutput:
+        assert isinstance(df, PDF)
+        df = df.paths.to_wide()
+        meta = df.get_meta()
+        zdf = df.fill_null(0)
+        return ppl.to_ppdf(zdf, meta=meta).paths.to_narrow()
 
-        if func == 'select_port':
-            assert len(node.args) == 3
-            assert isinstance(df, bool)
-            if df:
-                return self.eval_tree(node.args[1], varss)
-            return self.eval_tree(node.args[2], varss)
+    def _custom_select_port(
+        self, _func: str, node: ast.Call, varss: EvalVars, df: EvalOutput
+    ) -> EvalOutput:
+        assert len(node.args) == 3
+        assert isinstance(df, bool)
+        return self.eval_tree(node.args[1], varss) if df else self.eval_tree(node.args[2], varss)
 
-        if func == 'float': # FIXME Does this actually make sense?
-            assert isinstance(df, bool)
-            assert len(node.args) == 1
-            if df:
-                return Quantity(1.0, 'dimensionless')
-            return Quantity(0.0, 'dimensionless')
+    def _custom_float(
+        self, _func: str, node: ast.Call, _varss: EvalVars, df: EvalOutput
+    ) -> EvalOutput:
+        # FIXME Does this actually make sense?
+        assert isinstance(df, bool)
+        assert len(node.args) == 1
+        return Quantity(1.0, 'dimensionless') if df else Quantity(0.0, 'dimensionless')
 
-        if func == 'coalesce_df':
-            assert len(node.args) == 2
-            df1 = self.eval_tree(node.args[0], varss)
-            df2 = self.eval_tree(node.args[1], varss)
-            assert isinstance(df1, PDF)
-            assert isinstance(df2, PDF)
-            return df1.paths.coalesce_df(df2, how='outer')
+    def _custom_coalesce_df(
+        self, _func: str, node: ast.Call, varss: EvalVars, _df: EvalOutput
+    ) -> EvalOutput:
+        assert len(node.args) == 2
+        df1 = self.eval_tree(node.args[0], varss)
+        df2 = self.eval_tree(node.args[1], varss)
+        assert isinstance(df1, PDF)
+        assert isinstance(df2, PDF)
+        return df1.paths.coalesce_df(df2, how='outer')
 
-        if func in ('max', 'min'):
-            assert len(node.args) == 2, f"{func}(a, b) requires two arguments"
-            left = self.eval_tree(node.args[0], varss)
-            right = self.eval_tree(node.args[1], varss)
-            assert func in ('max', 'min')
-            return self._apply_max_min(left, right, func)
+    def _custom_max_min(
+        self, func: str, node: ast.Call, varss: EvalVars, _df: EvalOutput
+    ) -> EvalOutput:
+        assert len(node.args) == 2, f"{func}(a, b) requires two arguments"
+        left = self.eval_tree(node.args[0], varss)
+        right = self.eval_tree(node.args[1], varss)
+        return self._apply_max_min(left, right, cast("Literal['max', 'min']", func))
 
-        if func in ('and', 'or'):
-            assert len(node.args) == 2, f"{func}(a, b) requires two arguments"
-            left = self.eval_tree(node.args[0], varss)
-            right = self.eval_tree(node.args[1], varss)
-            op = 'min' if func == 'and' else 'max'
-            result = self._apply_max_min(left, right, op)
-            self._append_non_binary_warning_if_needed(left, right, result, func)
-            return result
-
-        raise NotImplementedError(f"Unknown function: {func}")
+    def _custom_and_or(
+        self, func: str, node: ast.Call, varss: EvalVars, _df: EvalOutput
+    ) -> EvalOutput:
+        assert len(node.args) == 2, f"{func}(a, b) requires two arguments"
+        left = self.eval_tree(node.args[0], varss)
+        right = self.eval_tree(node.args[1], varss)
+        op: Literal['max', 'min'] = 'min' if func == 'and' else 'max'
+        result = self._apply_max_min(left, right, op)
+        self._append_non_binary_warning_if_needed(
+            left, right, result, cast("Literal['and', 'or']", func)
+        )
+        return result
 
     def _apply_max_min(
         self, left: EvalOutput, right: EvalOutput, op: Literal['max', 'min']
@@ -494,13 +526,20 @@ class FormulaNode(Node):
         if extend:
             df = extend_last_historical_value_pl(df, self.get_end_year())
 
-        # Find unused nodes: computational nodes in varss.nodes that weren't referenced in the formula
+        # Implicit add: inputs tagged add_to_existing_dims are added without being in the formula
+        implicit_add = self.get_input_nodes(tag='add_to_existing_dims')
+        if implicit_add:
+            df = self.add_nodes_pl(df, implicit_add)
+
+        # Unused nodes (not in formula, not ignore_content) are also added for backward compatibility
         all_nodes = set(varss.nodes.values())
         used_nodes = {varss.nodes[name] for name in used_node_names if name in varss.nodes}
         unused_nodes = list(all_nodes - used_nodes)
         for edge in self.edges:
             node = edge.input_node
-            if 'ignore_content' in edge.tags or 'ignore_content' in node.tags or node.quantity == 'argument':
+            if node in unused_nodes and (
+                'ignore_content' in edge.tags or 'ignore_content' in node.tags or node.quantity == 'argument'
+            ):
                 unused_nodes.remove(node)
 
         if unused_nodes:

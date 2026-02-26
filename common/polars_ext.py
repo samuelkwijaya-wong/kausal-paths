@@ -76,6 +76,7 @@ class PathsExt:
             'scale_by_reference_year': self._scale_by_reference_year,
             'truncate_before_start': self._truncate_before_start,
             'truncate_beyond_end': self._truncate_beyond_end,
+            'use_observations': self._observed_only_extend_all, # TODO Preferred over observed_only_extend_all?
         }
 
     def to_pandas(self, meta: ppl.DataFrameMeta | None = None) -> pd.DataFrame:
@@ -547,6 +548,15 @@ class PathsExt:
         if mismatch:
             jdf._explanation.append(mismatch)
         return jdf
+
+    def subtract_with_dims(
+            self,
+            odf: ppl.PathsDataFrame,
+            how: Literal['left', 'inner', 'outer'] = 'outer'
+        ) -> ppl.PathsDataFrame:
+        """Subtract two PathsDataFrames with dimension awareness."""
+        odf_neg = odf.multiply_quantity(VALUE_COLUMN, unit_registry('-1 * dimensionless'))
+        return self._df.paths.add_with_dims(odf_neg, how=how)
 
     def multiply_with_dims(
             self,

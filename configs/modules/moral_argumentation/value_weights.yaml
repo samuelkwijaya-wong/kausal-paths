@@ -139,6 +139,139 @@ nodes:
 # Each utility = value action output (weight) × duty fulfilment.
 # Duty nodes (fair_share_met, emissions_acceptable) must exist in the instance.
 
+# ===== ETHICAL EVALUATION NODES =====
+
+- id: acceptable_emissions_per_person
+  name: Acceptable emissions per person threshold
+  description: |
+    Morally acceptable per-capita emissions level consistent with climate goals.
+    Typically 2-3 tonnes CO2e/person/year for 2°C target; 1-1.5 tonnes for 1.5°C target.
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/person/a
+  input_datasets:
+  - id: transportation/acceptable_emissions_per_person
+    output_dimensions: []
+  params:
+  - id: multiplier
+    value: 1.0
+    unit: dimensionless
+
+- id: emissions_acceptable
+  name: Emissions meet acceptable threshold
+  description: Evaluation of whether per-capita emissions are below morally 
+    acceptable level
+  type: formula.FormulaNode
+  quantity: fraction
+  unit: dimensionless
+  input_nodes:
+  - id: net_emissions_per_person
+    tags: [actual]
+  - id: acceptable_emissions_per_person
+    tags: [thresholdd]
+  params:
+    formula: actual <= thresholdd
+
+- id: emission_target_gap
+  name: Emission target gap
+  description: The difference between the net emissions and the emission target.
+  type: generic.GenericNode
+  quantity: emissions
+  unit: kt_co2e/a
+  input_nodes:
+  - id: net_emissions
+  params:
+    operations: goal_gap
+
+- id: emission_target_achieved
+  name: Emission target achieved
+  description: Whether the emission target is met.
+  type: formula.FormulaNode
+  quantity: fraction
+  unit: dimensionless
+  input_nodes:
+  - id: emission_target_gap
+  params:
+  - id: formula
+    value: emission_target_gap <= constant
+  - id: constant
+    value: 0
+    unit: kt_co2e/a
+
+# FAIR SHARE ASSESSMENT
+
+- id: global_reduction_needed
+  name: Global reduction needed
+  description: Fraction of global emissions that must be eliminated to meet 
+    climate targets
+  type: generic.GenericNode
+  quantity: fraction
+  unit: dimensionless
+  input_datasets:
+  - id: transportation/global_emission_share
+    output_dimensions: []
+  params:
+  - id: multiplier
+    value: 0.55
+    unit: dimensionless
+    label: 45% reduction by 2030 is typical pathway target
+
+- id: emission_reduction_achieved
+  name: Emission reduction achieved
+  description: Reduction from baseline due to policy
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/person/a
+  input_nodes:
+  - id: net_emissions_per_person
+  params:
+    operations: add,scenario_impact
+
+- id: emission_reduction_target_per_person
+  name: Emission reduction target per person
+  description: Target reduction per person
+  type: generic.ConstantNode
+  quantity: emissions
+  unit: g_co2e/person/a
+  params:
+  - id: constant
+    value: -1.0
+    unit: g_co2e/person/a
+    label: Target reduction per person
+
+- id: fair_share_met
+  name: Fair share obligation met
+  description: |
+    Evaluation of whether city is meeting its proportional responsibility for 
+    emission reductions. Returns 1 if fair share met, 0 if not.
+  type: formula.FormulaNode
+  quantity: fraction
+  unit: dimensionless
+  input_nodes:
+  - id: emission_reduction_achieved
+    tags: [achieved]
+  - id: emission_reduction_target_per_person
+    tags: [obligation]
+  params:
+    formula: achieved <= obligation
+
+- id: utility_own_targets_achieved
+  name: Utility from own targets achieved
+  description: Whether the own targets are met.
+  type: formula.FormulaNode
+  quantity: utility
+  unit: Ut
+  input_nodes:
+  - id: emission_target_achieved
+  output_nodes:
+  - id: total_utility
+  params:
+  - id: formula
+    value: emission_target_achieved * constant
+  - id: constant
+    value: 1
+    unit: Ut
+
 - id: utility_fairness
   name: Utility from fairness (fair share met)
   description: Contribution of the fairness value. Weight comes from value_fairness action; contribution from fair_share_met.
@@ -149,7 +282,7 @@ nodes:
   - id: fair_share_met
     tags: [contribution]
   output_nodes:
-  - id: moral_value_profile
+  - id: total_utility
   params:
   - id: formula
     value: weight * contribution * constant
@@ -167,7 +300,7 @@ nodes:
   - id: fair_share_met
     tags: [contribution]
   output_nodes:
-  - id: moral_value_profile
+  - id: total_utility
   params:
   - id: formula
     value: weight * contribution * constant
@@ -179,7 +312,7 @@ nodes:
   name: Utility from stewardship (emissions acceptable for future generations)
   description: Contribution of the stewardship value.
   type: formula.FormulaNode
-  quantity: ratio
+  quantity: utility
   unit: Ut
   input_dimensions: [hypotheses]
   output_dimensions: [hypotheses]
@@ -189,7 +322,7 @@ nodes:
   - id: commons_survival
     tags: [survival]
   output_nodes:
-  - id: moral_value_profile
+  - id: total_utility
     from_dimensions:
     - id: hypotheses
       categories: [moderate]
@@ -211,7 +344,7 @@ nodes:
   - id: emissions_acceptable
     tags: [contribution]
   output_nodes:
-  - id: moral_value_profile
+  - id: total_utility
   params:
   - id: formula
     value: weight * contribution * constant
@@ -229,7 +362,7 @@ nodes:
   - id: emissions_acceptable
     tags: [contribution]
   output_nodes:
-  - id: moral_value_profile
+  - id: total_utility
   params:
   - id: formula
     value: weight * contribution * constant
@@ -237,8 +370,8 @@ nodes:
     value: 1
     unit: Ut
 
-- id: moral_value_profile
-  name: Moral value profile
+- id: total_utility
+  name: Total utility
   description: |
     Sum of utilities from each moral value (fairness, reciprocity, stewardship, non-harm, common heritage).
     Each value contributes (weight × duty_fulfilled). Weights are set per value via each ValueAction's slider.
