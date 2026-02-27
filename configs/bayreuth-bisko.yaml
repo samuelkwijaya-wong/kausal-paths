@@ -417,12 +417,9 @@ dimensions:
     label_en: Passenger cars
     label_de: Personenkraftwagen (PKW)
     aliases: [Pkw, VL_Pkw]
-  - id: walking
-    label_en: Walking
-    label_de: Fußgänger
-    aliases: [Fuss, VL_Fuss]
   - id: cycling
     label_en: Cycling
+    label_de: Fahrrad
     aliases: [Rad, VL_Rad]
   - id: trucks
     label_en: Trucks
@@ -1046,6 +1043,9 @@ nodes:
 
 - id: vehicle_kilometers
   name_en: Vehicle kilometers
+  name_de: Fahrleistung
+  description_en: Data comes from KSP.
+  description_de: Daten kommen aus Klimaschutz-Planer.
   type: formula.FormulaNode
   quantity: mileage
   unit: vkm/a
