@@ -556,7 +556,7 @@ class NodeInterface(graphene.Interface):
     @staticmethod
     def resolve_is_visible(root: Node, _info) -> bool:
         nc = root.db_obj
-        if nc and nc.is_visible:
+        if nc is not None:
             return nc.is_visible
         return root.is_visible
 
