@@ -2,25 +2,709 @@ id: king-county
 default_language: en
 supported_languages: []
 site_url: https://king-county.paths.kausal.us
-dataset_repo: 
+dataset_repo:
   url: https://github.com/kausaltech/dvctest.git
-  commit: #TODO
+  commit:   # TODO: set to dvc repo HEAD after uploading king-county/ghg_inventory
   dvc_remote: kausal-s3
 name: King County Greenhouse Gas Emissions
 owner: King County
 theme_identifier: us-kingcounty
 target_year: 2030
 model_end_year: 2050
-reference_year: 2007
-minimum_historical_year: 2007
-maximum_historical_year: 2050
+reference_year: 2008
+minimum_historical_year: 2008
+maximum_historical_year: 2023
 emission_unit: t_co2e/a
 emission_forecast_from: 2024
-emissions_dimensions: [subsector]
-features: 
+emission_dimensions: [subsector]
+features:
   baseline_visible_in_graphs: true
 
-pages: 
+dimensions:
+
+- id: subsector
+  label: Subsector
+  help_text: Emission subsectors, grouped by sector, following the King County inventory.
+  groups:
+  - id: built_environment
+    label: Built Environment
+  - id: transportation
+    label: Transportation and Other Mobile Sources
+  - id: solid_waste_wastewater
+    label: Solid Waste & Wastewater
+  - id: refrigerants
+    label: Refrigerants
+  - id: land_use
+    label: Land Use
+  - id: sequestration
+    label: Sequestration
+  categories:
+  - id: electricity
+    label: Electricity
+    group: built_environment
+  - id: natural_gas
+    label: Natural gas
+    group: built_environment
+  - id: fuel_oil
+    label: Fuel oil
+    group: built_environment
+  - id: propane
+    label: Propane
+    group: built_environment
+  - id: industrial_processes
+    label: Industrial processes
+    group: built_environment
+  - id: on_road_vehicles
+    label: On-road vehicles
+    group: transportation
+  - id: aviation
+    label: Aviation
+    group: transportation
+  - id: off_road_equipment
+    label: Off-road equipment
+    group: transportation
+  - id: marine_vessels_and_rail
+    label: Marine vessels and rail
+    group: transportation
+  - id: solid_waste_generation_and_disposal
+    label: Solid waste generation and disposal
+    group: solid_waste_wastewater
+  - id: wastewater_process_emissions
+    label: Wastewater process emissions
+    group: solid_waste_wastewater
+  - id: refrigerants
+    label: Refrigerants
+    group: refrigerants
+  - id: agriculture
+    label: Agriculture
+    group: land_use
+  - id: forest_and_trees
+    label: Forest and trees
+    group: land_use
+  - id: solid_waste_disposal_sequestration
+    label: Solid waste disposal sequestration
+    group: sequestration
+  - id: forest_and_tree_sequestration
+    label: Forest and tree sequestration
+    group: sequestration
+
+- id: utility
+  label: Utility
+  categories:
+  - id: city_of_milton_wa
+    label: City of Milton - (WA)
+  - id: city_of_seattle_wa
+    label: City of Seattle - (WA)
+  - id: columbia_ridge_landfill
+    label: Columbia Ridge Landfill
+  - id: king_county_wastewater_treatment_facilities
+    label: King County Wastewater Treatment Facilities
+  - id: puget_sound_energy_inc
+    label: Puget Sound Energy Inc
+  - id: puget_sound_energy_inc_green_power
+    label: Puget Sound Energy Inc - Green Power
+  - id: puget_sound_energy_inc_green_program
+    label: Puget Sound Energy Inc - Green Program
+  - id: tanner_electric_coop
+    label: Tanner Electric Coop
+- id: economic_sector
+  label: Economic sector
+  categories:
+  - id: commercial
+    label: Commercial
+  - id: industrial
+    label: Industrial
+  - id: residential
+    label: Residential
+- id: vehicle_type
+  label: Vehicle type
+  categories:
+  - id: heavy_duty_vehicles
+    label: Heavy Duty Vehicles
+  - id: light_duty_vehicles
+    label: Light Duty Vehicles
+  - id: medium_duty_vehicles
+    label: Medium Duty Vehicles
+  - id: transit_buses
+    label: Transit Buses
+- id: moves_sector
+  label: MOVES sector
+  categories:
+  - id: agriculture
+    label: Agriculture
+  - id: airport_support
+    label: Airport Support
+  - id: commercial
+    label: Commercial
+  - id: construction
+    label: Construction
+  - id: industrial
+    label: Industrial
+  - id: lawn_garden
+    label: Lawn/Garden
+  - id: logging
+    label: Logging
+  - id: oil_field
+    label: Oil Field
+  - id: pleasure_craft
+    label: Pleasure Craft
+  - id: railroad
+    label: Railroad
+  - id: recreational
+    label: Recreational
+- id: fuel_type
+  label: Fuel type
+  categories:
+  - id: aviation_gasoline
+    label: Aviation gasoline
+  - id: biodiesel
+    label: Biodiesel
+  - id: cng
+    label: CNG
+  - id: diesel
+    label: Diesel
+  - id: electricity
+    label: Electricity
+  - id: ethanol
+    label: Ethanol
+  - id: ev
+    label: EV
+  - id: fuel_oil
+    label: Fuel oil
+  - id: gasoline
+    label: Gasoline
+  - id: jet_fuel
+    label: Jet Fuel
+  - id: lpg
+    label: LPG
+  - id: propane
+    label: Propane
+  - id: renewable_diesel
+    label: Renewable Diesel
+- id: livestock
+  label: Livestock
+  categories:
+  - id: beef_cows
+    label: Beef cows
+  - id: broilers
+    label: Broilers
+  - id: dairy_cows
+    label: Dairy cows
+  - id: goats
+    label: Goats
+  - id: horses
+    label: Horses
+  - id: layers
+    label: Layers
+  - id: sheep
+    label: Sheep
+  - id: swine
+    label: Swine
+  - id: turkeys
+    label: Turkeys
+- id: report_detail
+  label: Report detail
+  categories:
+  - id: auburn_municipal_airport
+    label: Auburn Municipal Airport
+  - id: auburnmunicipal_airport
+    label: AuburnMunicipal Airport
+  - id: bandera_creek_airport
+    label: Bandera Creek Airport
+  - id: compost
+    label: Compost
+  - id: enteric_fermentation
+    label: Enteric Fermentation
+  - id: freight_and_service_vehicles
+    label: Freight and service vehicles
+  - id: industrial_processes
+    label: Industrial processes
+  - id: king_county_international_airport
+    label: King County International Airport
+  - id: king_county_international_airport_boeing_field
+    label: King County International Airport/Boeing Field
+  - id: landfill
+    label: Landfill
+  - id: manure_management
+    label: Manure Management
+  - id: passenger_vehicles
+    label: Passenger vehicles
+  - id: seatac_king_county
+    label: SeaTac_King County
+  - id: skykomish_state_airport
+    label: Skykomish State Airport
+  - id: transit_vehicles
+    label: Transit vehicles
+  - id: will_rogers_wiley_post_memorial_spb_renton_municipal
+    label: Will Rogers Wiley Post Memorial SPB/Renton Municipal
+- id: material_type
+  label: Material type
+  categories:
+  - id: construction_materials
+    label: Construction Materials
+  - id: electronics
+    label: Electronics
+  - id: food_waste
+    label: Food Waste
+  - id: glass
+    label: Glass
+  - id: metals
+    label: Metals
+  - id: non_compostable
+    label: Non-Compostable
+  - id: other_mixed_materials
+    label: Other/Mixed Materials
+  - id: paper
+    label: Paper
+  - id: plastics
+    label: Plastics
+  - id: yard_trimmings
+    label: Yard Trimmings
+
+nodes:
+
+- id: electricity_emissions
+  name: Electricity
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: electricity
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: natural_gas_emissions
+  name: Natural gas
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: natural_gas
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: fuel_oil_emissions
+  name: Fuel oil
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: fuel_oil
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: propane_emissions
+  name: Propane
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: propane
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: industrial_processes_emissions
+  name: Industrial processes
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: industrial_processes
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: on_road_vehicles_emissions
+  name: On-road vehicles
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: on_road_vehicles
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: aviation_emissions
+  name: Aviation
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: aviation
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: off_road_equipment_emissions
+  name: Off-road equipment
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: off_road_equipment
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: marine_vessels_and_rail_emissions
+  name: Marine vessels and rail
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: marine_vessels_and_rail
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: solid_waste_generation_and_disposal_emissions
+  name: Solid waste generation and disposal
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: solid_waste_generation_and_disposal
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: wastewater_process_emissions
+  name: Wastewater process emissions
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: wastewater_process_emissions
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: refrigerants_emissions
+  name: Refrigerants
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: refrigerants
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: agriculture_emissions
+  name: Agriculture
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: agriculture
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: forest_and_trees_emissions
+  name: Forest and trees
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: forest_and_trees
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: solid_waste_disposal_sequestration_emissions
+  name: Solid waste disposal sequestration
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: solid_waste_disposal_sequestration
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: forest_and_tree_sequestration_emissions
+  name: Forest and tree sequestration
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  input_datasets:
+  - id: king-county/ghg_inventory
+    column: Value
+    forecast_from: 2024
+    filters:
+    - column: subsector
+      value: forest_and_tree_sequestration
+      drop_col: false
+    - {column: utility, flatten: true}
+    - {column: economic_sector, flatten: true}
+    - {column: vehicle_type, flatten: true}
+    - {column: moves_sector, flatten: true}
+    - {column: fuel_type, flatten: true}
+    - {column: livestock, flatten: true}
+    - {column: report_detail, flatten: true}
+    - {column: material_type, flatten: true}
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: net_emissions
+
+- id: net_emissions
+  name: Net emissions
+  type: simple.SectorEmissions
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [subsector]
+  output_dimensions: [subsector]
+  is_outcome: true
+
+pages:
 - id: home
   name: King County Greenhouse Gas Emissions
   path: /
@@ -29,9 +713,9 @@ pages:
   lead_title: King County Greenhouse Gas Emissions
   lead_paragraph: Community-wide greenhouse gas emissions inventory and projections.
 
-scenarios: 
+scenarios:
 - id: baseline
-  name: Business as Usual 
+  name: Business as Usual
 
 - id: default
   name: Strategic Climate Action Plan 2025
