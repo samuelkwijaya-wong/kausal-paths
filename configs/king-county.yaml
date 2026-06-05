@@ -1,0 +1,38 @@
+id: king-county
+default_language: en
+supported_languages: []
+site_url: https://king-county.paths.kausal.us
+dataset_repo: 
+  url: https://github.com/kausaltech/dvctest.git
+  commit: #TODO
+  dvc_remote: kausal-s3
+name: King County Greenhouse Gas Emissions
+owner: King County
+theme_identifier: us-kingcounty
+target_year: 2030
+model_end_year: 2050
+reference_year: 2007
+minimum_historical_year: 2007
+maximum_historical_year: 2050
+emission_unit: t_co2e/a
+emission_forecast_from: 2024
+emissions_dimensions: [subsector]
+features: 
+  baseline_visible_in_graphs: true
+
+pages: 
+- id: home
+  name: King County Greenhouse Gas Emissions
+  path: /
+  type: emission
+  outcome_node: net_emissions
+  lead_title: King County Greenhouse Gas Emissions
+  lead_paragraph: Community-wide greenhouse gas emissions inventory and projections.
+
+scenarios: 
+- id: baseline
+  name: Business as Usual 
+
+- id: default
+  name: Strategic Climate Action Plan 2025
+  all_actions_enabled: true
