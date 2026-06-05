@@ -24,7 +24,6 @@ dimensions:
 
 - id: subsector
   label: Subsector
-  help_text: Emission subsectors, grouped by sector, following the King County inventory.
   groups:
   - id: built_environment
     label: Built Environment
@@ -711,12 +710,8 @@ pages:
   type: emission
   outcome_node: net_emissions
   lead_title: King County Greenhouse Gas Emissions
-  lead_paragraph: Community-wide greenhouse gas emissions inventory and projections.
+  lead_paragraph: Community-wide greenhouse gas emissions inventory
 
 scenarios:
 - id: baseline
   name: Business as Usual
-
-- id: default
-  name: Strategic Climate Action Plan 2025
-  all_actions_enabled: true
