@@ -1,0 +1,1528 @@
+# ===========================================================================
+# USCP / GPC dual-protocol community GHG framework model
+# ===========================================================================
+#
+# A framework model for US (California) municipalities that reports a
+# community-wide GHG inventory compatible with BOTH:
+#   - ICLEI U.S. Community Protocol (USCP v1.2, July 2019), and
+#   - Global Protocol for Community-Scale GHG Emission Inventories (GPC).
+#
+# Design (see docs: "Kausal Paths US Framework Model — USCP/GPC Methodology
+# Crosswalk" build brief):
+#   - ONE underlying node structure at the GPC sub-sector level, organized
+#     as activity data x emission factor pairs.
+#   - A "protocol adapter" reporting layer: separate outcome nodes aggregate
+#     the same underlying emissions into GPC BASIC / BASIC+ / territorial
+#     (scope 1) totals and USCP required-activities / full-inventory totals.
+#   - Transportation is built as TWO parallel allocation branches
+#     (`geographic` = GPC-aligned / USCP Method TR.1.A;
+#      `demand_based` = USCP-preferred Method TR.1.B, origin-destination),
+#     selected with the `transportation_emissions.node_tag` parameter
+#     (a first-class user choice made at model setup, not a hidden default).
+#   - USCP Appendix I (consumption-based accounting) is EXCLUDED from v1
+#     per project decision. Harvested wood products accounting is likewise
+#     omitted (its USCP home is Appendix I; see build brief Section 6).
+#
+# Data entry (Trailhead / data-entry UI, to be built later):
+#   - Every user-editable input is its own leaf node (activity data or
+#     emission factor) with inline placeholder values (historical_values /
+#     forecast_values). The placeholders make the model compute out of the
+#     box for a generic ~100,000-resident California municipality.
+#   - When a city creates its instance (e.g. with `copy_instance`), it
+#     replaces the placeholders with local data — later via the data-entry
+#     UI (DB-backed datasets override these nodes once
+#     `use_datasets_from_db` wiring per node is added), for now by editing
+#     the copied YAML.
+#   - Each leaf node's description documents what to enter and the
+#     recommended public data sources (Google EIE, MPO travel demand models,
+#     CEC, CalRecycle, eGRID/CARB, EMFAC).
+#
+# Placeholder data provenance (order-of-magnitude values for a generic
+# California city of ~100,000 residents; replace with local data):
+#   - Electricity use: CEC electricity consumption statistics (~5.6 MWh/cap
+#     community-wide split ~38/45/17 res/comm/ind).
+#   - Natural gas: CGEC/CEC gas statistics (~280 therm/cap community-wide).
+#   - Grid emission factor: eGRID CAMX subregion (~0.24 kg CO2e/kWh in 2018,
+#     declining under SB 100). CARB/utility-specific factors are the
+#     California-preferred alternative.
+#   - VMT: statewide ~8,700 VMT/cap (Caltrans HPMS); demand-based ~10-15%
+#     higher for a typical city (Google EIE in-boundary + outbound trips).
+#   - Fleet EF: EMFAC fleet-average (~430 g CO2e/mi in 2018, declining under
+#     Advanced Clean Cars II).
+#   - Waste: CalRecycle per-resident disposal (~0.75 t/cap/a), declining
+#     under SB 1383 organics diversion.
+#   - Wastewater: USCP Appendix F default per-capita process emissions.
+#   - AFOLU/forestry: USCP Appendix J-style area x removal/emission factors.
+#
+# All numeric values below are PLACEHOLDERS unless noted otherwise.
+# ===========================================================================
+
+id: uscp-gpc
+default_language: en
+supported_languages: []
+# The dataset repo is not used yet: all placeholder data is inline in this
+# file. It is declared so that instances can later move their datasets to
+# DVC or the database without structural changes.
+dataset_repo:
+  url: https://github.com/kausaltech/dvctest.git
+  dvc_remote: kausal-s3
+name: USCP/GPC Community GHG Framework (California demonstration)
+owner: City of Demonstration
+theme_identifier: default
+target_year: 2045          # AB 1279: statewide carbon neutrality by 2045
+model_end_year: 2050
+reference_year: 2018       # common California CAP inventory baseline year
+minimum_historical_year: 2018
+maximum_historical_year: 2023
+emission_unit: kt/a        # kt CO2e per year (AR5 GWP-100); per-gas (CO2/CH4/N2O)
+                           # reporting is a planned extension, see TODO below.
+emission_forecast_from: 2024
+emission_dimensions: [scope, sector]
+features:
+  baseline_visible_in_graphs: true
+  show_explanations: true
+  use_datasets_from_db: true
+
+# TODO (framework roadmap, in build-brief order):
+#   1. Per-gas `ghg` dimension (CO2, CH4, N2O, F-gases) once dimensional
+#      datasets come from the data-entry UI instead of inline placeholders.
+#   2. Climate actions: each action plugs into an activity or emission
+#      factor node (e.g. building electrification -> natural gas use;
+#      EV adoption -> on-road fleet emission factor).
+#   3. Framework measure templates (frameworks app) generated from the
+#      leaf nodes marked "DATA ENTRY" below, for the data-entry UI.
+#   4. USCP Appendix H upstream module refinement (embodied energy of
+#      fuels, T&D losses); currently a single placeholder node.
+
+# Transportation allocation method - a first-class model-setup choice, set
+# on the `transportation_emissions` node (parameter
+# `transportation_emissions.node_tag`, also switchable per scenario):
+#   geographic   = count all travel physically inside the boundary
+#                  (GPC Transportation default; closest USCP analog is
+#                  Method TR.1.A). Data: Google EIE "in-boundary" trips,
+#                  MPO model link volumes, or HPMS road-segment VMT.
+#   demand_based = count trips by community members regardless of where
+#                  they occur (USCP-preferred Method TR.1.B,
+#                  origin-destination). Data: Google EIE "in-boundary +
+#                  outbound" trips or MPO activity-based model output.
+# The two branches have OPPOSITE boundary-inclusion logic and are kept as
+# parallel node branches; do not blend them without double-counting checks.
+params:
+- id: municipality_name
+  value: demonstration
+
+dimensions:
+
+- id: scope
+  label: Scope
+  help_text: 'GPC emission scopes. 1: emissions within the jurisdictional
+    boundary. 2: grid-supplied energy. 3: other emissions outside the
+    boundary caused by in-boundary activities.'
+  categories:
+  - id: scope1
+    label: Scope 1
+    aliases: [scope_1]
+  - id: scope2
+    label: Scope 2
+    aliases: [scope_2]
+  - id: scope3
+    label: Scope 3
+    aliases: [scope_3]
+
+# GPC sectors; the USCP appendix crosswalk is noted per category.
+- id: sector
+  label: Sector
+  help_text: GPC sectors. USCP organizes the same activities into its
+    appendices (C=Built Environment, D=Transportation, E=Solid Waste,
+    F=Wastewater & Water, G=Agricultural Livestock, H=Materials & Services,
+    J=Forest Land and Trees).
+  categories:
+  - id: stationary_energy
+    label: Stationary energy
+    color: '#4E79A7'
+  - id: transportation
+    label: Transportation
+    color: '#F28E2B'
+  - id: waste
+    label: Waste
+    color: '#76B7B2'
+  - id: ippu
+    label: Industrial processes & product use (IPPU)
+    color: '#B07AA1'
+  - id: afolu
+    label: Agriculture, forestry & other land use (AFOLU)
+    color: '#59A14F'
+  - id: upstream
+    label: Upstream supply chains (USCP Appendix H)
+    color: '#9C755F'
+
+- id: building_use
+  label: Building use
+  help_text: Stationary energy sub-sectors (GPC I.1-I.4; USCP Appendix C
+    Built Environment). Water & wastewater utility energy is kept as its
+    own category because USCP (Appendix F) reports it as a separate line
+    item while GPC folds it into commercial/institutional stationary
+    energy.
+  categories:
+  - id: residential
+    label: Residential buildings
+  - id: commercial_institutional
+    label: Commercial & institutional buildings
+  - id: industrial
+    label: Manufacturing & construction
+  - id: water_utilities
+    label: Water & wastewater utility energy
+
+emission_sectors:
+
+- id: net_emissions
+  name: Net emissions (city-induced, selected transport allocation)
+  description: 'The main outcome: stationary energy + transportation
+    (allocation branch selected with the transportation_emissions.node_tag
+    parameter) + waste + IPPU + AFOLU. Equivalent in coverage to GPC
+    BASIC+ when the geographic branch is selected. Upstream supply-chain
+    emissions (USCP Appendix H) are reported separately and are not part
+    of this total.'
+  is_outcome: true
+  goals:
+  - label: Community GHG reduction target
+    default: true
+    is_main_goal: true
+    linear_interpolation: true
+    values:
+    # PLACEHOLDERS: 40% below 2018 baseline by 2030 (SB 32-aligned) and
+    # 90% below by 2045 (AB 1279-aligned). Replace with the adopted CAP
+    # target of the instance city.
+    - year: 2030
+      value: 447
+    - year: 2045
+      value: 74
+
+nodes:
+
+# ===========================================================================
+# DRIVERS
+# ===========================================================================
+
+- id: population
+  name: Population
+  description: 'DATA ENTRY: resident population and its projection.
+    Sources: US Census / ACS; California Department of Finance E-5 and
+    P-2 projections. PLACEHOLDER: generic city of ~100,000 residents with
+    slow DOF-style growth.'
+  type: simple.AdditiveNode
+  quantity: population
+  unit: cap
+  historical_values: [[2018, 100000], [2023, 101000]]
+  forecast_values: [[2030, 103000], [2045, 106000], [2050, 107000]]
+  input_dataset_processors: [LinearInterpolation]
+
+# ===========================================================================
+# STATIONARY ENERGY (GPC sector I; USCP Appendix C "Built Environment")
+# Divergence: LOW. USCP's optional life-cycle electricity/fuel methods
+# (BE.5.1/BE.5.2) have no GPC equivalent and belong to the upstream module.
+# ===========================================================================
+
+# --------------------- Electricity (scope 2) ------------------------------
+
+- id: residential_electricity_use
+  name: Residential electricity use
+  description: 'DATA ENTRY: electricity delivered to residential customers.
+    Sources: serving utility community energy reports; CEC ECDMS
+    (Energy Consumption Data Management System). PLACEHOLDER: ~6 MWh per
+    household, ~35,000 households (CEC statewide residential average).'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: GWh/a
+  historical_values: [[2018, 210], [2023, 205]]
+  forecast_values: [[2030, 210], [2045, 225], [2050, 230]]  # BAU electrification uptick
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: electricity_use
+    to_dimensions:
+    - id: building_use
+      categories: [residential]
+
+- id: commercial_electricity_use
+  name: Commercial & institutional electricity use
+  description: 'DATA ENTRY: electricity delivered to commercial and
+    institutional customers (GPC I.2; municipal facilities included).
+    Sources: serving utility; CEC ECDMS. PLACEHOLDER: CEC statewide
+    commercial share scaled to a 100k city.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: GWh/a
+  historical_values: [[2018, 250], [2023, 245]]
+  forecast_values: [[2030, 248], [2045, 255], [2050, 257]]
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: electricity_use
+    to_dimensions:
+    - id: building_use
+      categories: [commercial_institutional]
+
+- id: industrial_electricity_use
+  name: Industrial electricity use
+  description: 'DATA ENTRY: electricity delivered to industrial customers
+    (GPC I.3 manufacturing & construction). Sources: serving utility;
+    CEC ECDMS. PLACEHOLDER: modest industrial base.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: GWh/a
+  historical_values: [[2018, 90], [2023, 85]]
+  forecast_values: [[2030, 85], [2045, 80], [2050, 80]]
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: electricity_use
+    to_dimensions:
+    - id: building_use
+      categories: [industrial]
+
+- id: water_utility_electricity_use
+  name: Water & wastewater utility electricity use
+  description: 'DATA ENTRY: electricity used for potable water pumping,
+    treatment and distribution and for wastewater conveyance/treatment
+    serving the community (USCP Appendix F separate line item; GPC folds
+    this into stationary energy - the separate category satisfies the
+    USCP allocation flag). Sources: water/wastewater utility records;
+    CA water-energy intensity studies (CPUC). PLACEHOLDER: ~150 kWh/cap/a.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: GWh/a
+  historical_values: [[2018, 15], [2023, 15]]
+  forecast_values: [[2030, 15], [2045, 16], [2050, 16]]
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: electricity_use
+    to_dimensions:
+    - id: building_use
+      categories: [water_utilities]
+
+- id: electricity_use
+  name: Community electricity use
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: GWh/a
+  input_dimensions: [building_use]
+  output_dimensions: [building_use]
+
+- id: electricity_emission_factor
+  name: Grid electricity emission factor
+  description: 'DATA ENTRY: CO2e intensity of grid-supplied electricity.
+    Default source across both protocols in practice: EPA eGRID subregion
+    factor (CAMX for most of California); the California-specific
+    alternative is the serving utility''s PCL/power-content-label factor or
+    CARB electricity EFs - confirm which one the instance city uses.
+    PLACEHOLDER: eGRID CAMX-like trajectory declining under SB 100 (100%
+    clean retail electricity by 2045).'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: g/kWh
+  historical_values: [[2018, 240], [2023, 210]]
+  forecast_values: [[2030, 150], [2035, 100], [2045, 20], [2050, 15]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: electricity_emissions
+  name: Electricity consumption emissions
+  description: Grid electricity emissions (GPC scope 2; USCP BE.2 electricity
+    use). Reported by building use.
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [building_use]
+  output_dimensions: [building_use]
+  input_nodes:
+  - id: electricity_use
+    tags: [non_additive]
+  - id: electricity_emission_factor
+    to_dimensions: []
+  output_nodes:
+  - id: stationary_energy_emissions
+    from_dimensions:
+    - id: building_use
+      flatten: true
+    to_dimensions:
+    - id: scope
+      categories: [scope2]
+
+# --------------------- Natural gas (scope 1) ------------------------------
+
+- id: residential_natural_gas_use
+  name: Residential natural gas use
+  description: 'DATA ENTRY: natural gas delivered to residential customers.
+    Sources: serving gas utility (e.g. PG&E, SoCalGas community reports);
+    CEC gas consumption statistics. PLACEHOLDER: ~400 therm/household.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: Mtherm/a
+  historical_values: [[2018, 14.0], [2023, 13.5]]
+  forecast_values: [[2030, 13.0], [2045, 12.0], [2050, 11.5]]
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: natural_gas_use
+    to_dimensions:
+    - id: building_use
+      categories: [residential]
+
+- id: commercial_natural_gas_use
+  name: Commercial & institutional natural gas use
+  description: 'DATA ENTRY: natural gas delivered to commercial and
+    institutional customers. Sources: serving gas utility; CEC.
+    PLACEHOLDER: statewide commercial share scaled to a 100k city.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: Mtherm/a
+  historical_values: [[2018, 8.0], [2023, 7.8]]
+  forecast_values: [[2030, 7.5], [2045, 7.0], [2050, 6.8]]
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: natural_gas_use
+    to_dimensions:
+    - id: building_use
+      categories: [commercial_institutional]
+
+- id: industrial_natural_gas_use
+  name: Industrial natural gas use
+  description: 'DATA ENTRY: natural gas delivered to industrial customers
+    (excluding gas used for grid electricity generation, which is covered
+    by the grid emission factor). Sources: serving gas utility; CEC.
+    PLACEHOLDER: modest industrial base.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: Mtherm/a
+  historical_values: [[2018, 6.0], [2023, 5.8]]
+  forecast_values: [[2030, 5.7], [2045, 5.5], [2050, 5.4]]
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: natural_gas_use
+    to_dimensions:
+    - id: building_use
+      categories: [industrial]
+
+- id: natural_gas_use
+  name: Community natural gas use
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: Mtherm/a
+  input_dimensions: [building_use]
+  output_dimensions: [building_use]
+
+- id: natural_gas_emission_factor
+  name: Natural gas combustion emission factor
+  description: 'Stationary natural gas combustion CO2e per therm (CO2 +
+    CH4 + N2O, AR5 GWP-100). Source: EPA Emission Factors Hub / USCP
+    Appendix C defaults (~5.31 kg CO2e/therm); rarely needs local
+    adjustment.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: kg/therm
+  historical_values: [[2018, 5.31], [2023, 5.31]]
+  forecast_values: [[2050, 5.31]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: natural_gas_combustion_emissions
+  name: Natural gas combustion emissions
+  description: On-site combustion of grid-delivered natural gas in buildings
+    (GPC scope 1; USCP BE.1 fuel use). Reported by building use.
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [building_use]
+  output_dimensions: [building_use]
+  input_nodes:
+  - id: natural_gas_use
+    tags: [non_additive]
+  - id: natural_gas_emission_factor
+    to_dimensions: []
+  output_nodes:
+  - id: stationary_energy_emissions
+    from_dimensions:
+    - id: building_use
+      flatten: true
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+
+# --------------------- Other stationary fuels (scope 1) -------------------
+
+- id: other_stationary_fuel_use
+  name: Other stationary fuel use (propane, fuel oil, wood, diesel)
+  description: 'DATA ENTRY: non-utility stationary fuels - propane/LPG,
+    distillate fuel oil, stationary diesel (generators), kerosene.
+    Sources: state fuel sales apportionment (USCP BE.1.B); local supplier
+    surveys; CARB fuel statistics. PLACEHOLDER: small share typical for
+    California cities with high gas coverage.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: GWh/a
+  historical_values: [[2018, 20], [2023, 19]]
+  forecast_values: [[2030, 18], [2045, 16], [2050, 15]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: other_stationary_fuel_emission_factor
+  name: Other stationary fuel emission factor
+  description: 'Blended CO2e factor for the local propane / fuel oil /
+    stationary diesel mix (propane ~215 t/GWh, distillate ~250 t/GWh).
+    Source: EPA Emission Factors Hub. PLACEHOLDER: propane-weighted blend.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: t/GWh
+  historical_values: [[2018, 230], [2023, 230]]
+  forecast_values: [[2050, 230]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: other_stationary_fuel_emissions
+  name: Other stationary fuel emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_nodes:
+  - id: other_stationary_fuel_use
+    tags: [non_additive]
+  - id: other_stationary_fuel_emission_factor
+  output_nodes:
+  - id: stationary_energy_emissions
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+
+# --------------------- Fugitive emissions (scope 1) -----------------------
+
+- id: natural_gas_fugitive_emission_factor
+  name: Natural gas distribution leakage factor
+  description: 'Fugitive CH4 from local natural gas distribution, expressed
+    as CO2e per therm of gas delivered (GPC I.8 fugitive oil & gas; USCP
+    Appendix C). Often "not estimated" at city scale; the placeholder
+    corresponds to ~0.3% distribution leakage at AR5 GWP-100.
+    Sources: utility leakage studies; EPA GHGI distribution factors.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: kg/therm
+  historical_values: [[2018, 0.25], [2023, 0.25]]
+  forecast_values: [[2050, 0.25]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: natural_gas_fugitive_emissions
+  name: Natural gas fugitive emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_nodes:
+  - id: natural_gas_use
+    tags: [non_additive]
+    from_dimensions:
+    - id: building_use
+      flatten: true
+  - id: natural_gas_fugitive_emission_factor
+  output_nodes:
+  - id: stationary_energy_emissions
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+
+# --------------------- Stationary energy collector ------------------------
+
+- id: stationary_energy_emissions
+  name: Stationary energy emissions
+  description: GPC Stationary Energy sector (I) / USCP Appendix C Built
+    Environment, plus water & wastewater utility energy (USCP Appendix F
+    energy line item).
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  color: '#4E79A7'
+  input_dimensions: [scope]
+  output_dimensions: [scope]
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [stationary_energy]
+
+# ===========================================================================
+# TRANSPORTATION (GPC sector II; USCP Appendix D)
+# Divergence: HIGH for on-road allocation. Two parallel branches are built
+# and selected with the `transportation_emissions.node_tag` parameter. The other
+# modes (transit, rail, aviation, waterborne, off-road) are shared between
+# both branches.
+# ===========================================================================
+
+# --------------------- On-road: geographic branch -------------------------
+
+- id: onroad_vmt_per_capita_geographic
+  name: On-road VMT per capita (geographic / in-boundary)
+  description: 'DATA ENTRY: annual vehicle miles traveled per resident on
+    road segments WITHIN the jurisdictional boundary, all vehicles
+    regardless of trip origin (GPC on-road default; USCP Method TR.1.A).
+    Sources (in order of preference): Google EIE "in-boundary" trips
+    (free, pre-loaded in ICLEI ClearPath for many cities); MPO travel
+    demand model link volumes x link lengths (e.g. SCAG ABM, MTC, SANDAG,
+    SACOG); Caltrans HPMS road-segment VMT (fallback for small
+    jurisdictions). PLACEHOLDER: ~8,700 VMT/cap (statewide average).'
+  type: simple.AdditiveNode
+  quantity: per_capita
+  unit: mile/cap/a
+  historical_values: [[2018, 8700], [2023, 8400]]
+  forecast_values: [[2030, 8400], [2045, 8400], [2050, 8400]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: onroad_vmt_geographic
+  name: On-road VMT (geographic / in-boundary)
+  type: simple.MultiplicativeNode
+  quantity: mileage
+  unit: Mmile/a
+  input_nodes:
+  - id: onroad_vmt_per_capita_geographic
+    tags: [non_additive]
+  - id: population
+
+# --------------------- On-road: demand-based branch -----------------------
+
+- id: onroad_vmt_per_capita_demand_based
+  name: On-road VMT per capita (demand-based / origin-destination)
+  description: 'DATA ENTRY: annual vehicle miles traveled per resident from
+    trips generated by the community (origin and/or destination in the
+    city), INCLUDING the out-of-boundary portion and EXCLUDING pass-through
+    trips (USCP-preferred Method TR.1.B). Sources (in order of preference):
+    Google EIE "in-boundary + outbound" trips (maps onto TR.1.B directly);
+    MPO activity-based model trip-generation output; household travel
+    survey per-capita estimates. PLACEHOLDER: ~13% above the geographic
+    figure, typical for a mid-size city with net out-commuting.'
+  type: simple.AdditiveNode
+  quantity: per_capita
+  unit: mile/cap/a
+  historical_values: [[2018, 9800], [2023, 9500]]
+  forecast_values: [[2030, 9500], [2045, 9500], [2050, 9500]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: onroad_vmt_demand_based
+  name: On-road VMT (demand-based / origin-destination)
+  type: simple.MultiplicativeNode
+  quantity: mileage
+  unit: Mmile/a
+  input_nodes:
+  - id: onroad_vmt_per_capita_demand_based
+    tags: [non_additive]
+  - id: population
+
+# --------------------- On-road: shared emission factor --------------------
+
+- id: onroad_fleet_emission_factor
+  name: On-road fleet-average emission factor
+  description: 'DATA ENTRY: fleet-average CO2e per vehicle mile for the
+    local vehicle mix (passenger + trucks). Source: CARB EMFAC for the
+    relevant county (California-specific and preferred over national
+    defaults); alternatively MPO model outputs. PLACEHOLDER: EMFAC-like
+    fleet average declining under Advanced Clean Cars II / Advanced Clean
+    Trucks BAU electrification.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: g/mile
+  historical_values: [[2018, 430], [2023, 390]]
+  forecast_values: [[2030, 300], [2035, 220], [2045, 120], [2050, 100]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: onroad_emissions_geographic
+  name: On-road transportation emissions (geographic)
+  description: In-boundary on-road emissions (GPC II.1 scope 1; USCP
+    TR.1.A analog).
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_nodes:
+  - id: onroad_vmt_geographic
+    tags: [non_additive]
+  - id: onroad_fleet_emission_factor
+  output_nodes:
+  - id: transportation_emissions_geographic
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+
+- id: onroad_emissions_demand_based
+  name: On-road transportation emissions (demand-based)
+  description: 'Community-induced on-road emissions (USCP Method TR.1.B).
+    Tagged scope 3 following the build-brief protocol-tag scheme: the
+    out-of-boundary trip portions counted here fall under GPC scope 3
+    trans-boundary transportation. Do not add this branch to the
+    geographic branch - they overlap by construction.'
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_nodes:
+  - id: onroad_vmt_demand_based
+    tags: [non_additive]
+  - id: onroad_fleet_emission_factor
+  output_nodes:
+  - id: transportation_emissions_demand_based
+    to_dimensions:
+    - id: scope
+      categories: [scope3]
+
+# --------------------- Other transportation modes (shared) ----------------
+
+- id: transit_vehicle_miles
+  name: Transit bus vehicle miles
+  description: 'DATA ENTRY: annual revenue vehicle miles of transit buses
+    serving the community (GPC II.1 on-road transit share). Sources:
+    transit agency NTD reports, apportioned to the jurisdiction.
+    PLACEHOLDER: mid-size city bus service.'
+  type: simple.AdditiveNode
+  quantity: mileage
+  unit: Mmile/a
+  historical_values: [[2018, 2.5], [2023, 2.5]]
+  forecast_values: [[2030, 2.6], [2045, 2.8], [2050, 2.8]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: transit_bus_emission_factor
+  name: Transit bus emission factor
+  description: 'CO2e per bus vehicle mile. Source: transit agency fuel
+    records or EMFAC bus category. PLACEHOLDER: diesel/CNG mix declining
+    to near zero under the CARB Innovative Clean Transit rule (zero-emission
+    fleets by 2040).'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: kg/mile
+  historical_values: [[2018, 2.4], [2023, 2.3]]
+  forecast_values: [[2030, 1.8], [2040, 0.3], [2050, 0.2]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: transit_emissions
+  name: Transit bus emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_nodes:
+  - id: transit_vehicle_miles
+    tags: [non_additive]
+  - id: transit_bus_emission_factor
+  output_nodes:
+  - id: transportation_emissions_geographic
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+  - id: transportation_emissions_demand_based
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+
+- id: railway_emissions
+  name: Railway emissions
+  description: 'DATA ENTRY: emissions from passenger and freight rail
+    activity within the boundary (GPC II.2). Direct-entry placeholder;
+    convert to activity x EF when local rail fuel data is available.
+    Sources: rail operators; regional rail authority. PLACEHOLDER: small
+    freight/commuter share.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  historical_values: [[2018, 2.0], [2023, 1.9]]
+  forecast_values: [[2030, 1.8], [2045, 1.5], [2050, 1.4]]
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: transportation_emissions_geographic
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+  - id: transportation_emissions_demand_based
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+
+- id: aviation_emissions
+  name: Aviation emissions
+  description: 'DATA ENTRY: emissions from flights attributable to the
+    community (GPC II.4, typically scope 3 for cities without a major
+    in-boundary airport; USCP Appendix D aviation methods allocate by
+    resident air travel). Sources: airport fuel dispensed apportioned by
+    passenger share; FAA airport statistics. PLACEHOLDER: general-aviation
+    scale.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  historical_values: [[2018, 3.0], [2023, 2.8]]
+  forecast_values: [[2030, 2.8], [2045, 2.8], [2050, 2.8]]
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: transportation_emissions_geographic
+    to_dimensions:
+    - id: scope
+      categories: [scope3]
+  - id: transportation_emissions_demand_based
+    to_dimensions:
+    - id: scope
+      categories: [scope3]
+
+- id: waterborne_emissions
+  name: Waterborne navigation emissions
+  description: 'DATA ENTRY: emissions from marine/harbor craft attributable
+    to the community (GPC II.3). Zero placeholder for inland cities; port
+    cities should use CARB harbor craft or port inventories.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  historical_values: [[2018, 0.1], [2023, 0.1]]
+  forecast_values: [[2050, 0.1]]
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: transportation_emissions_geographic
+    to_dimensions:
+    - id: scope
+      categories: [scope3]
+  - id: transportation_emissions_demand_based
+    to_dimensions:
+    - id: scope
+      categories: [scope3]
+
+- id: offroad_fuel_use
+  name: Off-road equipment fuel use
+  description: 'DATA ENTRY: gasoline + diesel used by off-road equipment
+    (construction, lawn & garden, industrial equipment; GPC II.5).
+    Sources: CARB OFFROAD/CalEEMod county apportionment.
+    PLACEHOLDER: ~25 gal/cap/a blended.'
+  type: simple.AdditiveNode
+  quantity: fuel_consumption
+  unit: Mgallon/a
+  historical_values: [[2018, 2.5], [2023, 2.4]]
+  forecast_values: [[2030, 2.3], [2045, 2.2], [2050, 2.1]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: offroad_fuel_emission_factor
+  name: Off-road fuel emission factor
+  description: 'Blended CO2e per gallon for the local off-road fuel mix
+    (gasoline 8.78 kg/gal, diesel 10.21 kg/gal; EPA factors).
+    PLACEHOLDER: diesel-weighted blend.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: kg/gallon
+  historical_values: [[2018, 9.7], [2023, 9.7]]
+  forecast_values: [[2050, 9.7]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: offroad_emissions
+  name: Off-road equipment emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_nodes:
+  - id: offroad_fuel_use
+    tags: [non_additive]
+  - id: offroad_fuel_emission_factor
+  output_nodes:
+  - id: transportation_emissions_geographic
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+  - id: transportation_emissions_demand_based
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+
+# --------------------- Transportation collectors & selector ---------------
+
+- id: transportation_emissions_geographic
+  name: Transportation emissions (geographic allocation)
+  description: All transportation modes with on-road counted geographically
+    (in-boundary; GPC-aligned). Used directly by the GPC reporting nodes.
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  color: '#F28E2B'
+  input_dimensions: [scope]
+  output_dimensions: [scope]
+
+- id: transportation_emissions_demand_based
+  name: Transportation emissions (demand-based allocation)
+  description: All transportation modes with on-road counted by community
+    demand (origin-destination; USCP-preferred). Used directly by the USCP
+    reporting nodes.
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  color: '#F28E2B'
+  input_dimensions: [scope]
+  output_dimensions: [scope]
+
+- id: transportation_emissions
+  name: Transportation emissions (selected allocation)
+  description: 'Selects the transportation allocation branch according to
+    the `node_tag` parameter (geographic | demand_based). This node feeds
+    the main net-emissions outcome; the protocol reporting nodes below
+    always use their protocol''s own branch regardless of this selection.'
+  type: simple.ChooseInputNode
+  quantity: emissions
+  unit: kt/a
+  color: '#F28E2B'
+  input_dimensions: [scope]
+  output_dimensions: [scope]
+  input_nodes:
+  - id: transportation_emissions_geographic
+    tags: [geographic]
+  - id: transportation_emissions_demand_based
+    tags: [demand_based]
+  params:
+  - id: node_tag
+    value: geographic
+    is_customizable: true
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [transportation]
+
+# ===========================================================================
+# WASTE (GPC sector III; USCP Appendices E "Solid Waste" and F "Wastewater")
+# Divergence: LOW. Both protocols split in-jurisdiction vs
+# generated-outside; placeholders assume waste is exported to a landfill
+# outside the boundary (scope 3), the typical California case - flip the
+# scope category to scope1 for cities hosting their own landfill.
+# ===========================================================================
+
+- id: per_capita_waste_disposal
+  name: Solid waste disposal per capita
+  description: 'DATA ENTRY: landfilled waste per resident per year.
+    Source: CalRecycle per-resident disposal rates (jurisdiction-specific,
+    published annually). PLACEHOLDER: ~0.75 t/cap/a declining under
+    SB 1383 organics diversion.'
+  type: simple.AdditiveNode
+  quantity: per_capita
+  unit: t/cap/a
+  historical_values: [[2018, 0.75], [2023, 0.70]]
+  forecast_values: [[2030, 0.62], [2045, 0.55], [2050, 0.53]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: solid_waste_disposed
+  name: Solid waste landfilled
+  type: simple.MultiplicativeNode
+  quantity: mass
+  unit: kt/a
+  input_nodes:
+  - id: per_capita_waste_disposal
+    tags: [non_additive]
+  - id: population
+
+- id: landfill_emission_factor
+  name: Landfill methane emission factor
+  description: 'CO2e per tonne of waste landfilled (methane-commitment
+    method, USCP Appendix E / GPC III.1; both protocols also allow
+    first-order decay). Depends on waste composition and landfill gas
+    capture. PLACEHOLDER: mixed California waste, ~75% LFG capture,
+    AR5 GWP-100.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: kg/t
+  historical_values: [[2018, 300], [2023, 300]]
+  forecast_values: [[2050, 300]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: landfill_emissions
+  name: Solid waste disposal emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_nodes:
+  - id: solid_waste_disposed
+    tags: [non_additive]
+  - id: landfill_emission_factor
+  output_nodes:
+  - id: waste_emissions
+    to_dimensions:
+    - id: scope
+      categories: [scope3]
+
+- id: per_capita_organics_composted
+  name: Organics composted per capita
+  description: 'DATA ENTRY: organics diverted to composting/anaerobic
+    digestion per resident (GPC III.2 biological treatment; USCP
+    Appendix E). Source: CalRecycle jurisdiction diversion data.
+    PLACEHOLDER: rising under SB 1383.'
+  type: simple.AdditiveNode
+  quantity: per_capita
+  unit: t/cap/a
+  historical_values: [[2018, 0.10], [2023, 0.15]]
+  forecast_values: [[2030, 0.22], [2045, 0.30], [2050, 0.30]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: organics_composted
+  name: Organics composted
+  type: simple.MultiplicativeNode
+  quantity: mass
+  unit: kt/a
+  input_nodes:
+  - id: per_capita_organics_composted
+    tags: [non_additive]
+  - id: population
+
+- id: compost_emission_factor
+  name: Composting emission factor
+  description: 'CH4 + N2O from biological treatment, as CO2e per tonne
+    processed. Source: USCP Appendix E / EPA WARM defaults.
+    PLACEHOLDER: windrow composting.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: kg/t
+  historical_values: [[2018, 60], [2023, 60]]
+  forecast_values: [[2050, 60]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: compost_emissions
+  name: Biological waste treatment emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_nodes:
+  - id: organics_composted
+    tags: [non_additive]
+  - id: compost_emission_factor
+  output_nodes:
+  - id: waste_emissions
+    to_dimensions:
+    - id: scope
+      categories: [scope3]
+
+- id: wastewater_process_emission_factor
+  name: Wastewater process emission factor per capita
+  description: 'CH4 + N2O process emissions from wastewater treatment and
+    effluent discharge, as CO2e per resident served (USCP Appendix F
+    methods WW.1-WW.12; GPC III.4). The energy used by the utility is
+    accounted under stationary energy (water & wastewater utility
+    category). Source: treatment plant process data or USCP per-capita
+    defaults. PLACEHOLDER: centralized aerobic plant with anaerobic
+    digestion. Scope 1 assumes in-boundary treatment; switch the edge to
+    scope3 if treated outside the jurisdiction.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: kg/cap/a
+  historical_values: [[2018, 24], [2023, 24]]
+  forecast_values: [[2050, 24]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: wastewater_emissions
+  name: Wastewater treatment emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_nodes:
+  - id: population
+    tags: [non_additive]
+  - id: wastewater_process_emission_factor
+  output_nodes:
+  - id: waste_emissions
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+
+# Incineration (GPC III.3) is omitted: California has essentially no
+# municipal waste combustion. Add an activity x EF pair here if the
+# instance city sends waste to one of the remaining facilities.
+
+- id: waste_emissions
+  name: Waste emissions
+  description: GPC Waste sector (III) / USCP Appendices E-F (solid waste
+    and wastewater process emissions).
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  color: '#76B7B2'
+  input_dimensions: [scope]
+  output_dimensions: [scope]
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [waste]
+
+# ===========================================================================
+# IPPU (GPC sector IV; no dedicated USCP appendix)
+# GPC-only sector, optional "additional source" in USCP-mode: included in
+# the GPC BASIC+ reporting node, excluded from the USCP reporting nodes.
+# ===========================================================================
+
+- id: refrigerant_emissions_per_capita
+  name: Product use (refrigerant) emissions per capita
+  description: 'DATA ENTRY: HFC/F-gas leakage from refrigeration and air
+    conditioning, as CO2e per resident (GPC IV.2 product use). Sources:
+    CARB F-gas inventory downscaled per capita; EPA Vintaging Model.
+    PLACEHOLDER: CARB statewide per-capita, declining under the HFC
+    phasedown (SB 1013, federal AIM Act).'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: kg/cap/a
+  historical_values: [[2018, 200], [2023, 190]]
+  forecast_values: [[2030, 150], [2045, 60], [2050, 50]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: ippu_emissions
+  name: IPPU emissions
+  description: 'Industrial process and product use emissions (GPC IV).
+    USCP has no dedicated IPPU appendix; in USCP-mode this sector is an
+    optional additional source and is excluded from the USCP reporting
+    nodes below. Point-source industrial process emissions (GPC IV.1)
+    should be added as separate nodes if the city hosts EPA FLIGHT
+    facilities.'
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  color: '#B07AA1'
+  input_nodes:
+  - id: population
+    tags: [non_additive]
+  - id: refrigerant_emissions_per_capita
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+    - id: sector
+      categories: [ippu]
+
+# ===========================================================================
+# AFOLU (GPC sector V; USCP Appendices G "Livestock" and J "Forest Land
+# and Trees")
+# Land/forestry follows USCP Appendix J v1 scope: Forest-remaining-Forest,
+# Forest-to-Non-Forest, Non-Forest-to-Forest, plus Trees Outside Forest as
+# a simplified canopy-based sub-module. The full 6x6 IPCC land-use-change
+# matrix and harvested wood products are out of v1 scope (see build brief
+# Section 6).
+# ===========================================================================
+
+- id: livestock_count
+  name: Livestock population
+  description: 'DATA ENTRY: livestock heads within the jurisdiction,
+    cattle-equivalent (USCP Appendix G; GPC V.1). Source: USDA Census of
+    Agriculture county data apportioned; county agricultural commissioner
+    reports. PLACEHOLDER: small peri-urban herd.'
+  type: simple.AdditiveNode
+  quantity: number
+  unit: pcs
+  historical_values: [[2018, 500], [2023, 500]]
+  forecast_values: [[2050, 500]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: livestock_emission_factor
+  name: Livestock emission factor
+  description: 'Enteric fermentation + manure management CO2e per head per
+    year (cattle-equivalent, AR5 GWP-100). Source: USCP Appendix G / EPA
+    state inventory factors. PLACEHOLDER: beef-weighted California mix.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: t/pcs/a
+  historical_values: [[2018, 3.0], [2023, 3.0]]
+  forecast_values: [[2050, 3.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: livestock_emissions
+  name: Livestock emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_nodes:
+  - id: livestock_count
+    tags: [non_additive]
+  - id: livestock_emission_factor
+  output_nodes:
+  - id: afolu_emissions
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+
+- id: forest_area
+  name: Forest land remaining forest land
+  description: 'DATA ENTRY: forest area within the jurisdiction that stays
+    forest (USCP Appendix J; GPC V.2 Land). Sources: LANDFIRE/FIA; CAL
+    FIRE FRAP vegetation maps; NLCD. PLACEHOLDER: 2,000 ha.'
+  type: simple.AdditiveNode
+  quantity: area
+  unit: ha
+  historical_values: [[2018, 2000], [2023, 2000]]
+  forecast_values: [[2050, 2000]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: forest_sequestration_rate
+  name: Forest carbon removal factor
+  description: 'Net CO2e removal per hectare per year for forest remaining
+    forest (negative = removal). Source: USCP Appendix J default removal
+    factors by forest type region (US Forest Service FIA-based).
+    PLACEHOLDER: California mixed conifer/oak average.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: t/ha/a
+  historical_values: [[2018, -3.0], [2023, -3.0]]
+  forecast_values: [[2050, -3.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: forest_sequestration
+  name: Forest carbon sequestration
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_nodes:
+  - id: forest_area
+    tags: [non_additive]
+  - id: forest_sequestration_rate
+  output_nodes:
+  - id: afolu_emissions
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+
+- id: forest_conversion_area
+  name: Forest converted to non-forest per year
+  description: 'DATA ENTRY: annual area of forest lost to development,
+    agriculture or severe disturbance (USCP Appendix J
+    Forest-to-Non-Forest). Sources: LANDFIRE disturbance products; local
+    land-use records. PLACEHOLDER: slow conversion pressure.'
+  type: simple.AdditiveNode
+  quantity: area
+  unit: ha/a
+  historical_values: [[2018, 10], [2023, 8]]
+  forecast_values: [[2030, 7], [2045, 5], [2050, 5]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: forest_conversion_emission_factor
+  name: Forest conversion emission factor
+  description: 'One-time carbon stock loss per hectare converted (USCP
+    Appendix J emission factor for land converted to other uses).
+    PLACEHOLDER: California forest average biomass carbon stock.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: t/ha
+  historical_values: [[2018, 180], [2023, 180]]
+  forecast_values: [[2050, 180]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: forest_conversion_emissions
+  name: Forest conversion emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_nodes:
+  - id: forest_conversion_area
+    tags: [non_additive]
+  - id: forest_conversion_emission_factor
+  output_nodes:
+  - id: afolu_emissions
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+
+# Non-Forest-to-Forest (afforestation) regrowth is small in most cities and
+# is folded into the urban canopy node below; add a dedicated
+# area x removal-factor pair when the instance city runs afforestation
+# programs at scale.
+
+- id: urban_tree_canopy_area
+  name: Urban tree canopy area
+  description: 'DATA ENTRY: tree canopy cover outside forest land (USCP
+    Appendix J "Trees Outside Forest", simplified canopy-based method;
+    GPC does not separately identify this). Sources: i-Tree Canopy /
+    Landsat urban tree canopy assessments. PLACEHOLDER: ~15% canopy over
+    a 100 km2 city.'
+  type: simple.AdditiveNode
+  quantity: area
+  unit: ha
+  historical_values: [[2018, 1500], [2023, 1550]]
+  forecast_values: [[2030, 1600], [2045, 1700], [2050, 1720]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: urban_tree_sequestration_rate
+  name: Urban tree canopy removal factor
+  description: 'Net CO2e removal per hectare of canopy per year (negative =
+    removal). Source: i-Tree Eco regional values / USCP Appendix J urban
+    tree guidance. PLACEHOLDER: California urban canopy average.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: t/ha/a
+  historical_values: [[2018, -2.5], [2023, -2.5]]
+  forecast_values: [[2050, -2.5]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: urban_tree_sequestration
+  name: Urban tree canopy sequestration
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: kt/a
+  input_nodes:
+  - id: urban_tree_canopy_area
+    tags: [non_additive]
+  - id: urban_tree_sequestration_rate
+  output_nodes:
+  - id: afolu_emissions
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+
+- id: afolu_emissions
+  name: AFOLU emissions
+  description: GPC AFOLU sector (V) / USCP Appendices G and J. Negative
+    values are land-sector removals.
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  color: '#59A14F'
+  input_dimensions: [scope]
+  output_dimensions: [scope]
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [afolu]
+
+# ===========================================================================
+# UPSTREAM SUPPLY CHAINS (USCP Appendix H "Materials & Services";
+# GPC "Other Scope 3" - optional in both protocols)
+# Off by default (zero placeholder); reported only in the USCP full
+# inventory node. NOT part of net_emissions to avoid double counting with
+# consumption-style accounting. USCP Appendix I (consumption-based) is
+# deliberately NOT built - excluded from v1 scope per project decision.
+# ===========================================================================
+
+- id: upstream_supply_chain_emissions
+  name: Upstream supply-chain emissions (optional)
+  description: 'DATA ENTRY (optional module): upstream/embodied emissions
+    of goods and services used by the community (USCP Appendix H; closest
+    GPC analog is the optional "Other Scope 3" category). Includes
+    upstream fuel/electricity life-cycle add-ons (USCP BE.5.1/BE.5.2).
+    Sources: EPA EEIO models; USCP Appendix H methods. PLACEHOLDER: zero
+    (module disabled).'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  color: '#9C755F'
+  historical_values: [[2018, 0], [2023, 0]]
+  forecast_values: [[2050, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+# ===========================================================================
+# PROTOCOL REPORTING LAYER ("protocol adapters")
+# The same underlying nodes aggregated into each protocol's official
+# reporting totals. Transportation always uses the branch that matches the
+# protocol, regardless of the transportation allocation selection.
+# ===========================================================================
+
+- id: gpc_basic_emissions
+  name: 'GPC BASIC total'
+  description: 'GPC BASIC: stationary energy (scopes 1-2), in-boundary
+    (geographic) transportation (scopes 1-2), and waste (scopes 1 and 3).
+    Trans-boundary transportation (scope 3), IPPU and AFOLU are excluded.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  is_outcome: true
+  input_dimensions: [scope, sector]
+  output_dimensions: [scope, sector]
+  input_nodes:
+  - id: stationary_energy_emissions
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [stationary_energy]
+  - id: transportation_emissions_geographic
+    from_dimensions:
+    - id: scope
+      categories: [scope1, scope2]
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [transportation]
+  - id: waste_emissions
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [waste]
+
+- id: gpc_basic_plus_emissions
+  name: 'GPC BASIC+ total'
+  description: 'GPC BASIC+: BASIC plus trans-boundary transportation
+    (scope 3 aviation/waterborne), IPPU and AFOLU. On-road uses the
+    geographic (in-boundary) allocation, per GPC.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  is_outcome: true
+  input_dimensions: [scope, sector]
+  output_dimensions: [scope, sector]
+  input_nodes:
+  - id: stationary_energy_emissions
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [stationary_energy]
+  - id: transportation_emissions_geographic
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [transportation]
+  - id: waste_emissions
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [waste]
+  - id: ippu_emissions
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+    - id: sector
+      categories: [ippu]
+  - id: afolu_emissions
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [afolu]
+
+- id: gpc_territorial_emissions
+  name: 'GPC territorial total (scope 1)'
+  description: 'GPC scopes-framework territorial total: all scope 1
+    emissions occurring within the jurisdictional boundary, with on-road
+    transportation counted geographically.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  is_outcome: true
+  input_dimensions: [scope, sector]
+  output_dimensions: [scope, sector]
+  input_nodes:
+  - id: stationary_energy_emissions
+    from_dimensions:
+    - id: scope
+      categories: [scope1]
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [stationary_energy]
+  - id: transportation_emissions_geographic
+    from_dimensions:
+    - id: scope
+      categories: [scope1]
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [transportation]
+  - id: waste_emissions
+    from_dimensions:
+    - id: scope
+      categories: [scope1]
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [waste]
+  - id: ippu_emissions
+    to_dimensions:
+    - id: scope
+      categories: [scope1]
+    - id: sector
+      categories: [ippu]
+  - id: afolu_emissions
+    from_dimensions:
+    - id: scope
+      categories: [scope1]
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [afolu]
+
+- id: uscp_required_emissions
+  name: 'USCP required activities total'
+  description: 'USCP "Basic Emissions Generating Activities": built
+    environment energy use (incl. water/wastewater utility energy),
+    demand-based (origin-destination) transportation per Method TR.1.B,
+    solid waste, and wastewater. IPPU and upstream modules are not USCP
+    required activities.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  is_outcome: true
+  input_dimensions: [scope, sector]
+  output_dimensions: [scope, sector]
+  input_nodes:
+  - id: stationary_energy_emissions
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [stationary_energy]
+  - id: transportation_emissions_demand_based
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [transportation]
+  - id: waste_emissions
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [waste]
+
+- id: uscp_full_emissions
+  name: 'USCP full inventory total'
+  description: 'USCP required activities plus optional additional sources:
+    agricultural livestock (Appendix G), forest land and trees
+    (Appendix J), and trans-boundary supply chains (Appendix H).
+    Consumption-based accounting (Appendix I) is excluded from v1 and is
+    non-additive with this total by design.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  is_outcome: true
+  input_dimensions: [scope, sector]
+  output_dimensions: [scope, sector]
+  input_nodes:
+  - id: stationary_energy_emissions
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [stationary_energy]
+  - id: transportation_emissions_demand_based
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [transportation]
+  - id: waste_emissions
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [waste]
+  - id: afolu_emissions
+    to_dimensions:
+    - id: scope
+    - id: sector
+      categories: [afolu]
+  - id: upstream_supply_chain_emissions
+    to_dimensions:
+    - id: scope
+      categories: [scope3]
+    - id: sector
+      categories: [upstream]
+
+pages:
+- id: home
+  name: USCP/GPC Community GHG Framework
+  path: /
+  type: emission
+  outcome_node: net_emissions
+  lead_title: Community greenhouse gas inventory and forecast
+  lead_paragraph: 'A dual-protocol (ICLEI U.S. Community Protocol and GPC)
+    community GHG inventory and forecast for a demonstration California
+    municipality. All input data are placeholder values from state and
+    federal public sources; replace them with local activity data and
+    emission factors when creating a city instance.'
+
+scenarios:
+- id: baseline
+  name: Business as Usual
+
+- id: default
+  default: true
+  name: Climate Action Plan
+  all_actions_enabled: true
+
+# Demonstrates the USCP-preferred transportation allocation; the protocol
+# reporting nodes are unaffected (they always use their own branch).
+- id: demand_based_allocation
+  name: Demand-based transportation allocation (USCP TR.1.B)
+  all_actions_enabled: true
+  params:
+  - id: transportation_emissions.node_tag
+    value: demand_based
