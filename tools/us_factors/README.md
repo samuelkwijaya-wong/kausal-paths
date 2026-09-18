@@ -95,6 +95,48 @@ For the Hub, each table is a declaration (`HubTable` in `sources/epa_hub.py`)
 rather than bespoke code, so adapting is usually editing a tuple of header
 tokens.
 
+## Checking the library against the existing models
+
+Two reports, because the question splits in two.
+
+### What the cities carry today (no data needed)
+
+```bash
+python -m tools.us_factors.survey
+```
+
+Reads `configs/` and lists every emission-factor node in the US instances, its
+unit, its dimensions and the dataset behind it. It needs no network, no database
+and no exports, and it is the fastest way to see the problem: today it reports
+**83 factor nodes across 7 instances, 6 dataset namespaces and nothing shared
+between cities**, with the same physical quantity written `lb*CO2e/MWh`,
+`lbs/MWh` and `t_co2e/MWh`, and the greenhouse-gas dimension called `ghg`,
+`greenhouse_gas` and `greenhouse_gases` in different models.
+
+### Whether the numbers agree (needs the library built and the cities exported)
+
+```bash
+python manage.py export_dataset sedona sedona/grid_emission_factors \
+    --out /tmp/city-exports --format wide
+python -m tools.us_factors.compare_to_cities --city-dir /tmp/city-exports
+```
+
+Reports four outcomes per factor and year, not two: **agrees**, **differs**,
+**incomparable units**, and **present on only one side**. The last two are where
+most of the findings are, so they are reported rather than folded into the
+others, and mappings that matched nothing are listed separately — a mapping that
+compared nothing is not evidence of agreement.
+
+Each city↔library correspondence is declared explicitly in `city_factors.py`,
+because it is a human claim rather than something the data says. Two kinds of
+uncertainty are marked there and must be resolved before trusting a result: the
+eGRID subregion (only Sedona's is documented in its own config) and the exact
+dimension category ids.
+
+Where a city series is not reduced to one line — Sedona's grid factor varies by
+`electricity_user`, and its wastewater plant is charged zero in 2023–24 — the
+comparison **refuses and names the dimension** rather than picking a row.
+
 ## Tests
 
 ```bash
@@ -116,17 +158,18 @@ failure path here raises rather than substitutes.
 
 ## Status
 
-Phase 1 of the plan: sources, parsers, provenance and tests (42 passing).
-`tables/` is empty until the build is run somewhere that can reach epa.gov —
-the code was written in an environment whose egress policy blocks it, which is
+Phases 1 and 2: sources, parsers, provenance, the config survey and the
+comparison (107 tests passing).
+
+`tables/` is empty until the build is run somewhere that can reach epa.gov — the
+code was written in an environment whose egress policy blocks it, which is
 precisely why nothing here falls back to a built-in value.
 
 Not yet built:
 - The shared config fragment `configs/modules/us/emission_factors.yaml` and the
-  factor nodes that read these tables.
-- The comparison report that diffs the library against what Sedona, Longmont and
-  Minneapolis currently use — the artifact that shows whether the library
-  reproduces the existing models, and where a city has drifted from the source.
+  factor nodes that read these tables, following the national/local port pattern
+  of `configs/modules/bisko/model.yaml`.
 - EPA Hub mobile CO2 (per gallon) and waste factors. Each is one more `HubTable`
   declaration plus a test, once its layout has been checked against the real
   workbook.
+- Mappings in `city_factors.py` for King County and Hollywood.

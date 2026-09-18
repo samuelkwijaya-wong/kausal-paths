@@ -95,7 +95,12 @@ MOBILE_MILEAGE = HubTable(
     dataset='epa_mobile_mileage_factors',
     metric='emission_factor',
     quantity='emission_factor',
-    unit='g/mile',
+    # Published by EPA as grams per mile, declared here as grams per vehicle-mile.
+    # `VMT` is `vehicle * mile` in the model's registry, and it is the unit the
+    # city models already use for this quantity (Sedona and Longmont both write
+    # `g/VMT`), so the library meets them where they are rather than handing every
+    # consumer a dimension mismatch to resolve.
+    unit='g/VMT',
     sheet_pattern=r'mobile',
     key_header='Vehicle Type',
     dimension='vehicle_type',
