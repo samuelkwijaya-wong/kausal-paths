@@ -1,0 +1,268 @@
+# Shared US emission factors.
+#
+# The US counterpart of `modules/bisko/model.yaml`: one place where the public
+# federal factors are declared, so that a US city model reads them instead of
+# carrying its own transcription. Run `python -m tools.us_factors.survey` to see
+# what that transcription currently costs -- today 83 emission-factor nodes across
+# seven US instances, six dataset namespaces and nothing shared between cities.
+#
+# HOW A CITY USES THIS
+#
+#   include:
+#   - file: modules/us/emission_factors.yaml
+#     allow_override: true
+#     dataset_replacements:
+#     - from: city/grid_emission_factor
+#       to: sedona/grid_emission_factors
+#
+#   params:
+#   - id: egrid_subregion
+#     value: aznm              # the subregion the city's utility sits in
+#   - id: use_epa_default_factors
+#     value: true
+#
+# THE TWO PARAMETERS
+#
+# `egrid_subregion` selects the city's row out of the shared national table. It
+# is the same mechanism `configs/bisko.yaml` uses for `municipality_name`, which
+# filters the shared `de/` tables down to one municipality -- a filter with
+# `ref:` reads the instance parameter, so one fragment serves every city.
+#
+# `use_epa_default_factors` chooses between the national table and the city's own,
+# exactly as `use_national_values` does in BISKO. It matters more in the US than
+# in Germany: a city served by a municipal utility, or buying a green tariff,
+# often has a utility-specific factor that is *more* correct than the eGRID
+# regional average. The library has to make that easy rather than fight it.
+#
+# WHAT IS NOT HERE YET
+#
+# Stationary-combustion and mobile factors are parsed by `tools/us_factors` but
+# are not declared here, because their `fuel` and `vehicle_type` dimension
+# categories are the slugified labels of the EPA workbook and nobody has read
+# that workbook yet -- the environment this was written in cannot reach epa.gov.
+# Guessing them would produce a fragment that loads and silently drops rows.
+# `python -m tools.us_factors.build_csv --emit-dimensions` writes the real
+# categories out of the parsed data; add the nodes once it has been run.
+
+datasets:
+
+# --- Library reference data: public federal factors, immutable to every user ---
+# Locked with `is_editable: false`, which is re-applied on every
+# `sync_instance_to_db`, so a later `load_dvc_dataset` cannot silently reopen a
+# factor table. The same convention as the `de/` tables in modules/bisko.
+- id: us/egrid_grid_factors          # EPA eGRID, grid electricity by subregion
+  is_editable: false
+- id: us/grid_factor_projection      # NREL Cambium, projected grid factors to 2050
+  is_editable: false
+
+# --- City slots: the local override each instance may supply and edit ---------
+# A city that keeps the national factor simply never replaces these; a city with
+# a utility-specific factor points them at its own dataset through
+# `dataset_replacements` and sets `use_epa_default_factors: false`.
+- id: city/grid_emission_factor
+  is_editable: true
+
+dimensions:
+
+- id: egrid_subregion
+  label_en: eGRID subregion
+  # The 27 subregions EPA publishes rates for. A city picks one; the acronym is
+  # kept in the label because that is how EPA's Power Profiler reports it, which
+  # is where a city looks its own up.
+  categories:
+  - id: akgd
+    label_en: AKGD - ASCC Alaska Grid
+    order: 1
+  - id: akms
+    label_en: AKMS - ASCC Miscellaneous
+    order: 2
+  - id: aznm
+    label_en: AZNM - WECC Southwest
+    order: 3
+  - id: camx
+    label_en: CAMX - WECC California
+    order: 4
+  - id: erct
+    label_en: ERCT - ERCOT All
+    order: 5
+  - id: frcc
+    label_en: FRCC - FRCC All
+    order: 6
+  - id: hims
+    label_en: HIMS - HICC Miscellaneous
+    order: 7
+  - id: hioa
+    label_en: HIOA - HICC Oahu
+    order: 8
+  - id: mroe
+    label_en: MROE - MRO East
+    order: 9
+  - id: mrow
+    label_en: MROW - MRO West
+    order: 10
+  - id: newe
+    label_en: NEWE - NPCC New England
+    order: 11
+  - id: nwpp
+    label_en: NWPP - WECC Northwest
+    order: 12
+  - id: nycw
+    label_en: NYCW - NPCC NYC/Westchester
+    order: 13
+  - id: nyli
+    label_en: NYLI - NPCC Long Island
+    order: 14
+  - id: nyup
+    label_en: NYUP - NPCC Upstate NY
+    order: 15
+  - id: prms
+    label_en: PRMS - Puerto Rico Miscellaneous
+    order: 16
+  - id: rfce
+    label_en: RFCE - RFC East
+    order: 17
+  - id: rfcm
+    label_en: RFCM - RFC Michigan
+    order: 18
+  - id: rfcw
+    label_en: RFCW - RFC West
+    order: 19
+  - id: rmpa
+    label_en: RMPA - WECC Rockies
+    order: 20
+  - id: spno
+    label_en: SPNO - SPP North
+    order: 21
+  - id: spso
+    label_en: SPSO - SPP South
+    order: 22
+  - id: srmv
+    label_en: SRMV - SERC Mississippi Valley
+    order: 23
+  - id: srmw
+    label_en: SRMW - SERC Midwest
+    order: 24
+  - id: srso
+    label_en: SRSO - SERC South
+    order: 25
+  - id: srtv
+    label_en: SRTV - SERC Tennessee Valley
+    order: 26
+  - id: srvc
+    label_en: SRVC - SERC Virginia/Carolina
+    order: 27
+
+- id: greenhouse_gas
+  label_en: Greenhouse gas
+  # Four categories, because eGRID publishes the three gases separately and a
+  # CO2-equivalent total alongside them. A model that wants the total uses
+  # `co2e`; one that applies its own GWPs uses the three.
+  #
+  # The name is `greenhouse_gas`, which is what Sedona uses. Longmont,
+  # Minneapolis and Yolo call the same dimension `ghg`, and Longmont's older
+  # config calls it `greenhouse_gases`. Adopting cities will need a rename; that
+  # is a migration for the adopting city, not a reason for the library to carry
+  # three spellings.
+  categories:
+  - id: co2
+    label_en: Carbon dioxide
+    order: 1
+  - id: ch4
+    label_en: Methane
+    order: 2
+  - id: n2o
+    label_en: Nitrous oxide
+    order: 3
+  - id: co2e
+    label_en: CO2 equivalent
+    order: 4
+
+- id: cambium_scenario
+  label_en: Grid projection scenario
+  # Cambium publishes several futures. Which one a city models is a policy
+  # choice, so it is a dimension the city selects rather than a value baked in.
+  categories:
+  - id: mid_case
+    label_en: Mid case
+    order: 1
+
+nodes:
+
+- id: grid_emission_factor
+  is_editable: false
+  name_en: Grid electricity emission factor
+  description_en: |
+    Emissions attributable to a megawatt-hour taken off the grid, from EPA's
+    eGRID, for the subregion set by the <code>egrid_subregion</code> parameter.
+    <br/><br/>
+    This is the <b>total output</b> rate: total generator emissions divided by
+    <i>all</i> generation, including nuclear and renewables. That is the basis a
+    community inventory wants, and the one eGRID's own documentation directs
+    inventory users to. The combustion-output rate in the same table answers a
+    different question and is deliberately not published here.
+    <br/><br/>
+    eGRID reports one data year per release, and releases lag it by about two
+    years. Each row is labelled with the year it reports on, and the release it
+    came from is recorded in the dataset's source field -- so a city can see
+    which vintage it is using rather than inferring it.
+    <br/><br/>
+    Switching <code>use_epa_default_factors</code> to false reads the city's own
+    table instead. That is the right choice where a municipal utility or a green
+    tariff gives a factor more accurate than the regional average; it is the
+    wrong choice where the city simply has an older copy of the same eGRID
+    figures.
+  type: formula.FormulaNode
+  quantity: emission_factor
+  unit: lb/MWh
+  input_dimensions: [greenhouse_gas]
+  output_dimensions: [greenhouse_gas]
+  input_datasets:
+  - id: us/egrid_grid_factors
+    tags: [national]
+    # `ref:` reads the instance parameter, so this one fragment serves every
+    # city. `drop_col` defaults to true, so the region column disappears after
+    # filtering and the node sees a plain per-gas series.
+    filters:
+    - column: egrid_subregion
+      ref: egrid_subregion
+  - id: city/grid_emission_factor
+    tags: [local]
+  params:
+  - id: formula
+    value: extend_all(select_port(condition, national, local))
+  - id: condition
+    ref: use_epa_default_factors
+
+- id: projected_grid_emission_factor
+  is_editable: false
+  name_en: Projected grid electricity emission factor
+  description_en: |
+    Projected grid emission rates to 2050, from NREL's Cambium, for the region
+    set by <code>cambium_region</code> and the scenario set by
+    <code>cambium_scenario</code>.
+    <br/><br/>
+    This exists because eGRID is history and every Paths model runs forward.
+    Without a projection a city must hold the grid flat for twenty-five years,
+    which is what the US models do today -- and a flat grid that is in fact
+    decarbonising makes every electricity-saving action look better than it is
+    and every fuel-switching action look worse.
+    <br/><br/>
+    The <b>average</b> emission rate is published here, not the long-run
+    marginal rate: the average is what continues the eGRID series a city's
+    inventory already uses. The marginal rate answers the different question of
+    what a change in load causes, and a model that wants it should say so
+    deliberately.
+  type: formula.FormulaNode
+  quantity: emission_factor
+  unit: kg/MWh
+  input_dimensions: [cambium_scenario]
+  output_dimensions: [cambium_scenario]
+  input_datasets:
+  - id: us/grid_factor_projection
+    tags: [national]
+    filters:
+    - column: cambium_region
+      ref: cambium_region
+  params:
+  - id: formula
+    value: extend_all(national)

@@ -1,0 +1,88 @@
+# A reference instance for the shared US emission-factor library.
+#
+# It exists to prove the library loads and computes end to end without putting
+# any existing city model at risk. It models nothing: there is no activity data
+# and no inventory here, only the factor nodes reading the `us/` tables.
+#
+# The city it stands in for is Sedona, because Sedona is the one US model whose
+# factor provenance is fully documented in its own config -- AZNM from eGRID at
+# configs/sedona.yaml:251 -- so the numbers this instance produces can be checked
+# against a published workbook.
+#
+# It is deliberately NOT a proposal to change Sedona. That model is an
+# intentional node-for-node reconstruction of a city workbook, quirks included:
+# it reproduces a grid factor of zero applied to the wastewater plant in 2023 and
+# 2024 because the workbook's formulas point at empty cells. Swapping in library
+# factors would contradict its stated purpose. Sedona is the best model to
+# validate the library against and the worst one to convert.
+#
+# THIS WILL NOT LOAD UNTIL THE `us/` TABLES ARE PUBLISHED.
+# Build them (`python -m tools.us_factors.build_csv --all`, needs network), push
+# them to the dataset repo, then set `dataset_repo.commit` below to the commit
+# that carries them.
+
+id: us-demo
+default_language: en
+supported_languages: []
+dataset_repo:
+  url: https://github.com/kausaltech/dvctest.git
+  # Placeholder: set this to the commit that carries the `us/` tables.
+  commit: 8963394f6bc0de09d57d648ef251b28f7a4b7227
+  dvc_remote: kausal-s3
+name: US emission factor library (reference)
+owner: Kausal
+theme_identifier: default
+target_year: 2030
+model_end_year: 2050
+reference_year: 2021
+minimum_historical_year: 2021
+maximum_historical_year: 2023
+emission_forecast_from: 2024
+emission_unit: t_co2e/a
+features:
+  baseline_visible_in_graphs: true
+  show_explanations: true
+
+include:
+- file: modules/us/emission_factors.yaml
+  allow_override: true
+
+params:
+
+- id: egrid_subregion
+  label_en: eGRID subregion
+  # Which of the 27 EPA subregions this model's electricity comes from. It
+  # filters the shared national table down to one row -- the same job
+  # `municipality_name` does for the shared `de/` tables in configs/bisko.yaml.
+  # Look a city's own up in EPA's Power Profiler; do not infer it from the state,
+  # since subregion boundaries cut across state lines.
+  value: aznm
+  is_customizable: false
+  is_visible: false
+
+- id: cambium_region
+  label_en: Cambium region
+  # NREL's projection regions are not the eGRID subregions, so this is a separate
+  # setting rather than something derivable from the one above.
+  #
+  # SET THIS FROM THE ACTUAL CAMBIUM FILE before trusting the projection node. A
+  # region name that does not appear in the data filters the table to nothing,
+  # and a node reading an empty table computes rather than complains. The value
+  # below has not been checked against a real Cambium download -- list the real
+  # ones with:
+  #
+  #   python -m tools.us_factors.build_csv --inspect cambium_annual_gea
+  #
+  value: AZNMc
+  is_customizable: false
+  is_visible: false
+
+- id: use_epa_default_factors
+  label_en: Use the published EPA factors rather than a locally held table
+  # True keeps the shared library values. False reads the city's own table, which
+  # is the right choice when a municipal utility or a green tariff gives a factor
+  # more accurate than the regional average -- and the wrong one when the city
+  # merely holds an older copy of the same eGRID figures.
+  value: true
+  is_customizable: true
+  is_visible: true

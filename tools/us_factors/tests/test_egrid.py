@@ -26,7 +26,7 @@ SOURCE = 'US EPA eGRID2023'
 def test_parses_every_subregion_and_gas(egrid_workbook: Path) -> None:
     df = egrid.parse(egrid_workbook, release_year=2023, data_year=2023, source_label=SOURCE)
 
-    assert set(df['egrid_subregion'].unique()) == {'AZNM', 'CAMX', 'NEWE'}
+    assert set(df['egrid_subregion'].unique()) == {'aznm', 'camx', 'newe'}
     assert set(df['greenhouse_gas'].unique()) == {'co2', 'ch4', 'n2o', 'co2e'}
     assert df.height == 3 * 4
 
@@ -36,9 +36,9 @@ def test_reads_values_against_the_right_subregion(egrid_workbook: Path) -> None:
 
     co2 = df.filter(pl.col('greenhouse_gas') == 'co2').sort('egrid_subregion')
     assert co2.select(['egrid_subregion', 'value']).rows() == [
-        ('AZNM', 700.0),
-        ('CAMX', 500.0),
-        ('NEWE', 600.0),
+        ('aznm', 700.0),
+        ('camx', 500.0),
+        ('newe', 600.0),
     ]
 
 
@@ -54,7 +54,7 @@ def test_normalises_per_gwh_rates_to_one_metric_unit(egrid_workbook: Path) -> No
     assert df['unit'].unique().to_list() == ['lb/MWh']
 
     ch4_aznm = df.filter(
-        (pl.col('greenhouse_gas') == 'ch4') & (pl.col('egrid_subregion') == 'AZNM')
+        (pl.col('greenhouse_gas') == 'ch4') & (pl.col('egrid_subregion') == 'aznm')
     )
     # The fixture publishes 50.0 lb/GWh, which is 0.05 lb/MWh.
     assert ch4_aznm['value'].item() == pytest.approx(0.05)
@@ -83,7 +83,7 @@ def test_skips_footnote_rows_and_the_descriptive_row(egrid_workbook: Path) -> No
     """Neither the 'ZZZZ' footnote nor the descriptive row may become a factor."""
     df = egrid.parse(egrid_workbook, release_year=2023, data_year=2023, source_label=SOURCE)
 
-    assert 'ZZZZ' not in df['egrid_subregion'].to_list()
+    assert 'zzzz' not in df['egrid_subregion'].to_list()
     assert df['value'].dtype == pl.Float64
 
 

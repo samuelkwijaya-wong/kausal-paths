@@ -203,7 +203,11 @@ def parse(path: Path, release_year: int, data_year: int, source_label: str) -> p
                 'metric': 'grid_emission_factor',
                 'quantity': 'emission_factor',
                 'unit': METRIC_UNIT,
-                'egrid_subregion': code,
+                # Lower-cased because Paths dimension category ids are lower-case
+                # by convention (see the `consumer_sector` categories in
+                # configs/sedona.yaml). The published upper-case acronym is kept
+                # as the category's label in the shared config fragment.
+                'egrid_subregion': code.lower(),
                 'greenhouse_gas': rate.gas,
                 'year': data_year,
                 'value': float(value) * rate.scale,

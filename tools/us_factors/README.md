@@ -95,6 +95,47 @@ For the Hub, each table is a declaration (`HubTable` in `sources/epa_hub.py`)
 rather than bespoke code, so adapting is usually editing a tuple of header
 tokens.
 
+## Using it in a city model
+
+The shared config fragment is `configs/modules/us/emission_factors.yaml`, the US
+counterpart of `configs/modules/bisko/model.yaml`. A city includes it and sets two
+parameters:
+
+```yaml
+include:
+- file: modules/us/emission_factors.yaml
+  allow_override: true
+
+params:
+- id: egrid_subregion
+  value: aznm                  # filters the shared table to this city's region
+- id: use_epa_default_factors
+  value: true                  # false reads the city's own table instead
+```
+
+`configs/us-demo.yaml` is a reference instance that does exactly this and nothing
+else, so the library can be loaded and computed without touching a real city
+model. It will not load until the `us/` tables have been built and pushed.
+
+Two design points carried over from BISKO:
+
+- The region is selected by **parameter**, not written into the fragment, so one
+  fragment serves every city — the same mechanism `configs/bisko.yaml` uses with
+  `municipality_name`.
+- Each factor node has a **national and a local port**. This matters more in the
+  US than in Germany: a city on a municipal utility or a green tariff often has a
+  factor more accurate than the eGRID regional average, and the library has to
+  make that easy rather than fight it.
+
+Stationary-combustion and mobile factors are parsed but not yet declared in the
+fragment, because their `fuel` and `vehicle_type` categories are the slugified
+labels of an EPA workbook nobody has read yet. Generate them from real data
+rather than guessing:
+
+```bash
+python -m tools.us_factors.build_csv --all --emit-dimensions
+```
+
 ## Checking the library against the existing models
 
 Two reports, because the question splits in two.
@@ -158,18 +199,23 @@ failure path here raises rather than substitutes.
 
 ## Status
 
-Phases 1 and 2: sources, parsers, provenance, the config survey and the
-comparison (107 tests passing).
+Phases 1–3: sources, parsers, provenance, the config survey, the comparison, the
+shared fragment and a reference instance (122 tests passing).
 
 `tables/` is empty until the build is run somewhere that can reach epa.gov — the
 code was written in an environment whose egress policy blocks it, which is
 precisely why nothing here falls back to a built-in value.
 
 Not yet built:
-- The shared config fragment `configs/modules/us/emission_factors.yaml` and the
-  factor nodes that read these tables, following the national/local port pattern
-  of `configs/modules/bisko/model.yaml`.
+- Stationary and mobile factor nodes in the fragment (see above — they need the
+  real dimension categories first).
 - EPA Hub mobile CO2 (per gallon) and waste factors. Each is one more `HubTable`
   declaration plus a test, once its layout has been checked against the real
   workbook.
 - Mappings in `city_factors.py` for King County and Hollywood.
+- Adoption by an existing city. When that happens the pilot should **not** be
+  Sedona: that model deliberately reproduces a city workbook including its bugs,
+  so it is the best model to validate against and the worst to convert. Longmont
+  (whose own config lists "move all data from code to dataset" as a to-do) and
+  Yolo (one historical year, modelled to 2045, so it actually needs the forward
+  grid curve) are the better candidates.

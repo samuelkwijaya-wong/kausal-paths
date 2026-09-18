@@ -53,7 +53,7 @@ def test_a_city_can_filter_the_shared_table_down_to_its_own_region(
     path = write_wide_csv(df, tmp_path / 'egrid_grid_factors.csv')
 
     back = pl.read_csv(path)
-    sedona = back.filter(pl.col('egrid_subregion') == 'AZNM')
+    sedona = back.filter(pl.col('egrid_subregion') == 'aznm')
 
     assert sedona.height == 4  # one row per gas
     assert sedona.filter(pl.col('greenhouse_gas') == 'co2')['2023'].item() == 700.0
