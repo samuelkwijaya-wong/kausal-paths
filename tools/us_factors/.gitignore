@@ -1,0 +1,4 @@
+# Downloaded source workbooks. They are large, they are republished at stable
+# public URLs, and their provenance sidecars record exactly which file was used —
+# so the repo carries the record, not the payload.
+cache/

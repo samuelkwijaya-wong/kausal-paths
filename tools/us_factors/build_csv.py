@@ -1,0 +1,151 @@
+# tools/ is an implicit namespace package by design; run with `-m`.
+r"""
+Build the US emission-factor tables.
+
+    python -m tools.us_factors.build_csv --all
+    python -m tools.us_factors.build_csv --egrid 2023 2022
+    python -m tools.us_factors.build_csv --inspect egrid2023
+
+Writes one CSV per dataset into ``tables/``, in the upload format described by
+``docs/dataset-csv-format.md``. Publishing them onwards is the existing route::
+
+    python -m tools.upload_new_dataset -i tools/us_factors/tables/egrid_grid_factors.csv \\
+        -o us -l en -n <instance>
+
+``--inspect`` prints the structure of a cached source file instead of building.
+It exists because the parsers locate data by header text, so when a publisher
+changes a layout the fix starts from knowing what the file actually contains --
+and the person running the build is usually not the person who wrote the parser.
+"""
+
+import argparse
+import sys
+from pathlib import Path
+
+import polars as pl
+
+from tools.us_factors.provenance import CACHE_DIR, SourceUnavailableError
+from tools.us_factors.sources import cambium, egrid, epa_hub
+from tools.us_factors.sources.workbook import WorkbookLayoutError, describe
+from tools.us_factors.tidy import write_wide_csv
+
+TABLES_DIR = Path(__file__).parent / 'tables'
+
+DEFAULT_EGRID_RELEASES = [2021, 2022, 2023]
+DEFAULT_HUB_YEAR = 2025
+"""
+The year Hub factors are stamped with.
+
+The Hub publishes one set of current factors rather than a time series, so a
+single year is written and the model extends it. Which year that is matters for
+provenance, not for the value.
+"""
+
+
+def _write(frames: dict[str, pl.DataFrame], out_dir: Path) -> list[Path]:
+    written = []
+    for dataset, df in sorted(frames.items()):
+        path = write_wide_csv(df, out_dir / f'{dataset}.csv')
+        rows = df.select(['dataset', 'metric']).height
+        print(f'  wrote {path.relative_to(Path.cwd()) if path.is_relative_to(Path.cwd()) else path} '
+              f'({rows} values)')
+        written.append(path)
+    return written
+
+
+def build_all(args: argparse.Namespace) -> dict[str, pl.DataFrame]:
+    """Run each requested source, collecting one frame per output dataset."""
+    frames: dict[str, pl.DataFrame] = {}
+    common = {'refresh': args.refresh, 'offline': args.offline}
+
+    if args.egrid:
+        print('eGRID:')
+        frames[egrid.DATASET] = egrid.build(args.egrid, **common)
+
+    if args.epa_hub:
+        print('EPA Emission Factors Hub:')
+        frames.update(epa_hub.build(args.hub_year, **common))
+
+    if args.cambium:
+        print('NREL Cambium:')
+        frames[cambium.DATASET] = cambium.build(scenario=args.cambium_scenario, **common)
+
+    return frames
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog='python -m tools.us_factors.build_csv',
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument('--all', action='store_true', help='Build every source with its defaults.')
+    parser.add_argument(
+        '--egrid', nargs='*', type=int, metavar='RELEASE', default=None,
+        help=f'eGRID releases to build (default {DEFAULT_EGRID_RELEASES}).',
+    )
+    parser.add_argument('--epa-hub', action='store_true', help='Build the EPA Hub tables.')
+    parser.add_argument(
+        '--hub-year', type=int, default=DEFAULT_HUB_YEAR,
+        help=f'Year to stamp Hub factors with (default {DEFAULT_HUB_YEAR}).',
+    )
+    parser.add_argument('--cambium', action='store_true', help='Build the Cambium projection.')
+    parser.add_argument('--cambium-scenario', default='mid_case', help='Scenario label for Cambium rows.')
+    parser.add_argument(
+        '--offline', action='store_true',
+        help='Never download; use the cache and fail if a source is missing.',
+    )
+    parser.add_argument('--refresh', action='store_true', help='Re-download even if cached.')
+    parser.add_argument(
+        '--inspect', metavar='KEY',
+        help='Print the structure of a cached source file (e.g. egrid2023) and exit.',
+    )
+    parser.add_argument(
+        '--out-dir', type=Path, default=TABLES_DIR, help='Where to write the CSVs.',
+    )
+    args = parser.parse_args(argv)
+
+    if args.inspect:
+        matches = sorted(CACHE_DIR.glob(f'{args.inspect}*'))
+        matches = [p for p in matches if p.suffix in {'.xlsx', '.xls', '.csv'}]
+        if not matches:
+            print(f'No cached file matching {args.inspect!r} in {CACHE_DIR}', file=sys.stderr)
+            return 1
+        for path in matches:
+            if path.suffix == '.csv':
+                head = pl.read_csv(path, n_rows=3)
+                print(f'{path.name}\n  columns: {head.columns}\n{head}')
+            else:
+                print(describe(path))
+        return 0
+
+    if args.all:
+        args.egrid = args.egrid or DEFAULT_EGRID_RELEASES
+        args.epa_hub = True
+        args.cambium = True
+    elif args.egrid == []:
+        args.egrid = DEFAULT_EGRID_RELEASES
+
+    if not (args.egrid or args.epa_hub or args.cambium):
+        parser.error('Nothing to build. Pass --all, or one of --egrid / --epa-hub / --cambium.')
+
+    try:
+        frames = build_all(args)
+    except SourceUnavailableError as exc:
+        print(f'\nSource unavailable:\n{exc}', file=sys.stderr)
+        return 2
+    except WorkbookLayoutError as exc:
+        print(
+            f'\nA source file did not have the expected layout:\n{exc}\n\n'
+            f'Run with --inspect to see what the file actually contains.',
+            file=sys.stderr,
+        )
+        return 3
+
+    print('\nWriting tables:')
+    _write(frames, args.out_dir)
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
