@@ -1,0 +1,65 @@
+Dataset,Metric,Quantity,Unit,action,sector,fuel,Source,Comment,2023,2029,2030,2040,2045,2050
+Emissions inventory,Emissions,emissions,kt_co2e/a,,industrial,electricity,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,3750,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,industrial,natural_gas,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,550,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,industrial,coal,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,180,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,industrial,non_energy,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,1800,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,transportation,gasoline,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,2470,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,transportation,diesel,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,850,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,transportation,jet_fuel,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,620,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,residential,electricity,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,1720,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,residential,natural_gas,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,160,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,residential,other_fuels,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,20,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,commercial,electricity,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,1590,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,commercial,natural_gas,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,140,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,commercial,coal,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,20,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,waste,non_energy,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,440,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,municipal,electricity,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,170,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,fugitive,non_energy,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,70,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,agriculture,electricity,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,20,,,,,
+Emissions inventory,Emissions,emissions,kt_co2e/a,,agriculture,other_fuels,"BCDCOG RCAP 2026, Figure 3.1",Fuel split read off the chart; sector totals scaled to the shares on p. 30 and the 14.6 Mt total,30,,,,,
+Sequestration,Emissions,emissions,kt_co2e/a,,natural_and_working_lands,,"BCDCOG RCAP 2026, p. 30 and Figure 3.2",Held flat to 2050,-1800,,,,,
+BAU growth index,Growth index,fraction,dimensionless,,industrial,,"BCDCOG RCAP 2026, p. 36-37 and Figure 4.1","Text says +7%, but Figure 4.1 and the 17.5 Mt total imply about +3.5%; the total is followed",1.0,,,,,1.035
+BAU growth index,Growth index,fraction,dimensionless,,transportation,,"BCDCOG RCAP 2026, p. 36-37 and Figure 4.1",+2% (p. 37),1.0,,,,,1.02
+BAU growth index,Growth index,fraction,dimensionless,,residential,,"BCDCOG RCAP 2026, p. 36-37 and Figure 4.1",+46% (p. 37),1.0,,,,,1.46
+BAU growth index,Growth index,fraction,dimensionless,,commercial,,"BCDCOG RCAP 2026, p. 36-37 and Figure 4.1",+12% (p. 37),1.0,,,,,1.12
+BAU growth index,Growth index,fraction,dimensionless,,waste,,"BCDCOG RCAP 2026, p. 36-37 and Figure 4.1",+332% (p. 37),1.0,,,,,4.32
+BAU growth index,Growth index,fraction,dimensionless,,municipal,,"BCDCOG RCAP 2026, p. 36-37 and Figure 4.1",Assumed; read off Figure 4.1,1.0,,,,,1.2
+BAU growth index,Growth index,fraction,dimensionless,,fugitive,,"BCDCOG RCAP 2026, p. 36-37 and Figure 4.1",Assumed; read off Figure 4.1,1.0,,,,,1.2
+BAU growth index,Growth index,fraction,dimensionless,,agriculture,,"BCDCOG RCAP 2026, p. 36-37 and Figure 4.1",Assumed flat; read off Figure 4.1,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,reduce_grid_emissions,,electricity,"BCDCOG RCAP 2026, Table 4.3","Calibrated so industry falls ~5% by 2050 (p. 39); the IRP target of -52% is against 2005, not 2023",1.0,,,,,0.86
+Action factors by fuel,Remaining share,fraction,dimensionless,reduce_grid_emissions,,natural_gas,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,reduce_grid_emissions,,coal,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,reduce_grid_emissions,,gasoline,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,reduce_grid_emissions,,diesel,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,reduce_grid_emissions,,jet_fuel,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,reduce_grid_emissions,,other_fuels,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,reduce_grid_emissions,,non_energy,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,vehicle_emission_standards,,electricity,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,vehicle_emission_standards,,natural_gas,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,vehicle_emission_standards,,coal,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,vehicle_emission_standards,,gasoline,"BCDCOG RCAP 2026, Table 4.3","Assumed fleet-turnover efficiency gain, calibrated to the -23% transport change (p. 39)",1.0,,,,,0.8
+Action factors by fuel,Remaining share,fraction,dimensionless,vehicle_emission_standards,,diesel,"BCDCOG RCAP 2026, Table 4.3","Assumed fleet-turnover efficiency gain, calibrated to the -23% transport change (p. 39)",1.0,,,,,0.8
+Action factors by fuel,Remaining share,fraction,dimensionless,vehicle_emission_standards,,jet_fuel,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,vehicle_emission_standards,,other_fuels,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,vehicle_emission_standards,,non_energy,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,adopt_electric_vehicles,,electricity,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,adopt_electric_vehicles,,natural_gas,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,adopt_electric_vehicles,,coal,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,adopt_electric_vehicles,,gasoline,"BCDCOG RCAP 2026, Table 4.3","Assumed net effect of EV adoption at the historic trend, calibrated to the -23% transport change (p. 39)",1.0,,,,,0.86
+Action factors by fuel,Remaining share,fraction,dimensionless,adopt_electric_vehicles,,diesel,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,adopt_electric_vehicles,,jet_fuel,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,adopt_electric_vehicles,,other_fuels,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by fuel,Remaining share,fraction,dimensionless,adopt_electric_vehicles,,non_energy,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by sector,Remaining share,fraction,dimensionless,retrofit_building_stock,industrial,,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by sector,Remaining share,fraction,dimensionless,retrofit_building_stock,transportation,,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by sector,Remaining share,fraction,dimensionless,retrofit_building_stock,residential,,"BCDCOG RCAP 2026, Table 4.3","1.3% of stock renovated per year, about 35% by 2050, assumed 10% energy saving each",1.0,,,,,0.965
+Action factors by sector,Remaining share,fraction,dimensionless,retrofit_building_stock,commercial,,"BCDCOG RCAP 2026, Table 4.3","1.3% of stock renovated per year, about 35% by 2050, assumed 10% energy saving each",1.0,,,,,0.965
+Action factors by sector,Remaining share,fraction,dimensionless,retrofit_building_stock,waste,,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by sector,Remaining share,fraction,dimensionless,retrofit_building_stock,municipal,,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by sector,Remaining share,fraction,dimensionless,retrofit_building_stock,fugitive,,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Action factors by sector,Remaining share,fraction,dimensionless,retrofit_building_stock,agriculture,,"BCDCOG RCAP 2026, Table 4.3",Not affected by this action,1.0,,,,,1.0
+Rapid transit,Displaced trips,activity,trip/a,,,,"BCDCOG RCAP 2026, Table 4.3",Project completed in 2030; held flat after 2040 (assumed),0,0,1335900,2255300,,2255300
+Rapid transit,Average trip length,distance,km,,,,Assumption,Assumed average length of a car trip replaced by transit,12.0,,,,,
+Rapid transit,Car emission factor,emission_factor,kg_co2e/pkm,,,,Assumption,Assumed gasoline car emissions per passenger-km,0.2,,,,,
+Bus electrification,Emission reduction,emissions,kt_co2e/a,,,,"BCDCOG RCAP 2026, Table 4.3",Assumed diesel saving of a fully electric CARTA fleet in 2045; not given in the plan,0,,,,12,12
+Population,Population,population,cap,,,,"BCDCOG RCAP 2026, p. 29 and Table 4.1",14.6 Mt / 17.1 t per person; +39% population growth to 2050,854000,,,,,1187060
