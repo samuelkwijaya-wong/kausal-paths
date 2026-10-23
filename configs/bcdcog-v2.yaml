@@ -1,0 +1,440 @@
+# Berkeley-Charleston-Dorchester region -- local variant (v2) of configs/bcdcog.yaml.
+#
+# The same model, reading its datasets from a DVC repository on this computer
+# instead of Kausal's shared one, so it can be set up without upload credentials:
+#
+#   data/bcdcog-v2/setup_local.sh
+#
+# The script creates the local repository, uploads data/bcdcog/bcdcog_datasets.csv
+# into it and rewrites `dataset_repo.url` and `dataset_repo.commit` below for this
+# computer, so those two lines are machine-specific. Everything else, including
+# where the model departs from the published plan, is documented in
+# configs/bcdcog.yaml; keep the two in step by hand.
+
+id: bcdcog-v2
+default_language: en
+supported_languages: []
+# Written by data/bcdcog-v2/setup_local.sh; `local` is the DVC remote it configures.
+dataset_repo:
+  url: /path/to/kausal-local-data/bcdcog/datasets.git
+  commit: run-data/bcdcog-v2/setup_local.sh
+  dvc_remote: local
+name: Berkeley-Charleston-Dorchester Regional Climate Action Plan (local)
+owner: Berkeley-Charleston-Dorchester Council of Governments
+theme_identifier: default
+
+reference_year: 2023
+minimum_historical_year: 2023
+maximum_historical_year: 2023
+emission_forecast_from: 2024
+target_year: 2050
+model_end_year: 2050
+
+emission_unit: Mt_co2e/a
+emission_dimensions: [sector]
+features:
+  baseline_visible_in_graphs: true
+
+dimensions:
+- id: sector
+  label: Sector
+  categories:
+  - id: industrial
+    label: Industrial
+    color: '#253F7A'
+  - id: transportation
+    label: Transportation
+    color: '#F3725A'
+  - id: residential
+    label: Residential
+    color: '#5DA3B8'
+  - id: commercial
+    label: Commercial
+    color: '#F7A81B'
+  - id: waste
+    label: Waste
+    color: '#8DA0D9'
+  - id: municipal
+    label: Municipal
+    color: '#5E1F4F'
+  - id: fugitive
+    label: Fugitive
+    color: '#1B2440'
+  - id: agriculture
+    label: Agriculture
+    color: '#F28EBF'
+  - id: natural_and_working_lands
+    label: Natural and working lands
+    color: '#4E9F50'
+
+- id: fuel
+  label: Energy source
+  categories:
+  - id: electricity
+    label: Grid electricity
+  - id: natural_gas
+    label: Natural gas
+  - id: coal
+    label: Coal
+  - id: gasoline
+    label: Gasoline
+  - id: diesel
+    label: Diesel
+  - id: jet_fuel
+    label: Jet fuel
+  - id: other_fuels
+    label: Petroleum products, propane and wood
+  - id: non_energy
+    label: Waste, industrial processes and fugitive emissions
+
+# Only used to pick an action's rows out of the shared factor datasets.
+- id: action
+  label: Action
+  categories:
+  - id: reduce_grid_emissions
+    label: Reduce grid emissions
+  - id: vehicle_emission_standards
+    label: Maintain vehicle emission standards
+  - id: adopt_electric_vehicles
+    label: Adopt electric vehicles
+  - id: retrofit_building_stock
+    label: Retrofit building stock
+
+emission_sectors:
+- id: net_emissions
+  name: Net emissions
+  description: Greenhouse gas emissions of the Berkeley, Charleston and Dorchester
+    counties, minus the carbon sequestered by natural and working lands.
+  is_outcome: true
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+
+nodes:
+
+# --- Business-as-usual projection --------------------------------------------
+# `ratio_to_max_hist_year` turns the index into growth since 2023: 1.0 up to
+# 2023, so the inventory is untouched, and only the forecast is shaped.
+- id: bau_growth_index
+  name: Business-as-usual growth index
+  description: How much each sector's emissions grow from 2023 if nothing changes,
+    driven by population, employment and household growth (RCAP Table 4.1).
+  type: generic.GenericNode
+  quantity: fraction
+  unit: dimensionless
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: bcdcog/bau_growth_index
+    column: growth_index
+    forecast_from: 2024
+  input_dataset_processors: [LinearInterpolation]
+
+- id: sector_emissions
+  name: Emissions by sector and energy source
+  description: The 2023 regional inventory (RCAP Figure 3.1), grown with the
+    business-as-usual index and reduced by the planned measures.
+  type: generic.GenericNode
+  quantity: emissions
+  unit: kt_co2e/a
+  input_dimensions: [sector, fuel]
+  output_dimensions: [sector, fuel]
+  params:
+  # Multiply first, so the relative measures do not also scale the absolute
+  # savings of the transit and bus actions, which are added afterwards.
+  - id: operations
+    value: add_datasets,multiply,add
+  input_datasets:
+  - id: bcdcog/emissions_inventory
+    column: emissions
+    forecast_from: 2024
+  input_nodes:
+  - id: bau_growth_index
+    tags: [ratio_to_max_hist_year]
+    to_dimensions:
+    - id: sector
+  output_nodes:
+  - id: net_emissions
+    from_dimensions:
+    - id: fuel
+      flatten: true
+    to_dimensions:
+    - id: sector
+
+- id: sequestration
+  name: Sequestration by natural and working lands
+  description: Carbon absorbed by parks, forests and marshes (RCAP p. 30), held
+    at the 2023 estimate.
+  type: generic.GenericNode
+  quantity: emissions
+  unit: kt_co2e/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: bcdcog/sequestration
+    column: emissions
+    forecast_from: 2024
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: sector
+
+# --- Lowcountry Rapid Transit ------------------------------------------------
+- id: rapid_transit_displaced_trips
+  name: Car trips replaced by Lowcountry Rapid Transit
+  type: generic.GenericNode
+  quantity: activity
+  unit: trip/a
+  input_datasets:
+  - id: bcdcog/rapid_transit
+    column: displaced_trips
+    forecast_from: 2024
+  input_dataset_processors: [LinearInterpolation]
+
+- id: rapid_transit_trip_length
+  name: Average length of a replaced car trip
+  type: generic.GenericNode
+  quantity: distance
+  unit: km
+  input_datasets:
+  - id: bcdcog/rapid_transit
+    column: average_trip_length
+    forecast_from: 2024
+
+- id: car_emission_factor
+  name: Car emissions per passenger-km
+  type: generic.GenericNode
+  quantity: emission_factor
+  unit: kg_co2e/pkm
+  input_datasets:
+  - id: bcdcog/rapid_transit
+    column: car_emission_factor
+    forecast_from: 2024
+
+# --- Indicators ---------------------------------------------------------------
+- id: population
+  name: Population
+  description: Population of the region; 39% growth to 2050 (RCAP Table 4.1).
+  type: generic.GenericNode
+  quantity: population
+  unit: cap
+  input_datasets:
+  - id: bcdcog/population
+    column: population
+    forecast_from: 2024
+  input_dataset_processors: [LinearInterpolation]
+
+# Gross, before sequestration, as the plan reports it (17.1 t per person, p. 29).
+- id: emissions_per_capita
+  name: Emissions per person
+  type: generic.GenericNode
+  quantity: per_capita
+  unit: t_co2e/cap/a
+  input_nodes:
+  - id: sector_emissions
+    tags: [non_additive]
+    from_dimensions:
+    - id: sector
+      flatten: true
+    - id: fuel
+      flatten: true
+  - id: population
+    tags: [geometric_inverse]
+
+action_groups:
+- id: transportation
+  name: Transportation
+  color: '#F3725A'
+- id: buildings
+  name: Buildings
+  color: '#5DA3B8'
+- id: electricity
+  name: Electricity generation
+  color: '#F7A81B'
+
+# Each relative action emits the share of emissions that remains (1.0 = no
+# change). The factor datasets list every category, with 1.0 where an action has
+# no effect, because multiplying drops any category missing from a factor.
+actions:
+- id: reduce_grid_emissions
+  name: Reduce grid emissions
+  description: Dominion Energy reduces grid emissions by 52% by 2050 relative to
+    2005 (Integrated Resource Plan 2025). Against 2023 this is modelled as a 14%
+    cut in the emissions of all grid electricity used in the region.
+  type: simple.GenericAction
+  quantity: fraction
+  unit: dimensionless
+  no_effect_value: 1.0
+  group: electricity
+  input_dimensions: [fuel]
+  output_dimensions: [fuel]
+  input_datasets:
+  - id: bcdcog/action_factors_by_fuel
+    column: remaining_share
+    forecast_from: 2024
+    filters:
+    - dimension: action
+      categories: [reduce_grid_emissions]
+      flatten: true
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: sector_emissions
+    tags: [non_additive]
+    to_dimensions:
+    - id: fuel
+
+- id: retrofit_building_stock
+  name: Retrofit building stock
+  description: 1.3% of the building stock is renovated every year through energy
+    efficiency programmes. About 35% of buildings are renovated by 2050; with an
+    assumed 10% saving each, home and commercial building emissions fall 3.5%.
+  type: simple.GenericAction
+  quantity: fraction
+  unit: dimensionless
+  no_effect_value: 1.0
+  group: buildings
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: bcdcog/action_factors_by_sector
+    column: remaining_share
+    forecast_from: 2024
+    filters:
+    - dimension: action
+      categories: [retrofit_building_stock]
+      flatten: true
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: sector_emissions
+    tags: [non_additive]
+    to_dimensions:
+    - id: sector
+
+- id: vehicle_emission_standards
+  name: Maintain vehicle emission standards
+  description: EPA vehicle greenhouse gas standards and CAFE fuel economy
+    standards stay in place, so new vehicles keep getting more efficient. Modelled
+    as a 20% cut in gasoline and diesel emissions by 2050.
+  type: simple.GenericAction
+  quantity: fraction
+  unit: dimensionless
+  no_effect_value: 1.0
+  group: transportation
+  input_dimensions: [fuel]
+  output_dimensions: [fuel]
+  input_datasets:
+  - id: bcdcog/action_factors_by_fuel
+    column: remaining_share
+    forecast_from: 2024
+    filters:
+    - dimension: action
+      categories: [vehicle_emission_standards]
+      flatten: true
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: sector_emissions
+    tags: [non_additive]
+    to_dimensions:
+    - id: fuel
+
+- id: adopt_electric_vehicles
+  name: Adopt electric vehicles
+  description: Electric vehicles are adopted following the historic registration
+    trend of 2017-2023 (10.5% increase every 5 years). Modelled as a 14% net cut
+    in gasoline emissions by 2050.
+  type: simple.GenericAction
+  quantity: fraction
+  unit: dimensionless
+  no_effect_value: 1.0
+  group: transportation
+  input_dimensions: [fuel]
+  output_dimensions: [fuel]
+  input_datasets:
+  - id: bcdcog/action_factors_by_fuel
+    column: remaining_share
+    forecast_from: 2024
+    filters:
+    - dimension: action
+      categories: [adopt_electric_vehicles]
+      flatten: true
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: sector_emissions
+    tags: [non_additive]
+    to_dimensions:
+    - id: fuel
+
+- id: complete_lowcountry_rapid_transit
+  name: Complete the Lowcountry Rapid Transit system
+  description: The project is completed in 2030 and replaces 1,335,900 trips,
+    increasing to 2,255,300 in 2040. Each replaced trip is counted as a car trip
+    of average length.
+  type: simple.GenericAction
+  quantity: emissions
+  unit: kt_co2e/a
+  group: transportation
+  params:
+  - id: multiplier
+    value: -1
+    unit: dimensionless
+    is_customizable: false
+    is_visible: false
+  input_nodes:
+  - id: rapid_transit_displaced_trips
+    tags: [non_additive]
+  - id: rapid_transit_trip_length
+    tags: [non_additive]
+  - id: car_emission_factor
+    tags: [non_additive]
+  output_nodes:
+  - id: sector_emissions
+    to_dimensions:
+    - id: sector
+      categories: [transportation]
+    - id: fuel
+      categories: [gasoline]
+
+- id: electrify_carta_bus_fleet
+  name: Electrify the CARTA bus fleet
+  description: All buses in the CARTA fleet are electric by 2045. The diesel
+    saving of a fully electric fleet is an assumption; the plan does not give it.
+  type: simple.GenericAction
+  quantity: emissions
+  unit: kt_co2e/a
+  group: transportation
+  params:
+  - id: multiplier
+    value: -1
+    unit: dimensionless
+    is_customizable: false
+    is_visible: false
+  input_datasets:
+  - id: bcdcog/bus_electrification
+    column: emission_reduction
+    forecast_from: 2024
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: sector_emissions
+    to_dimensions:
+    - id: sector
+      categories: [transportation]
+    - id: fuel
+      categories: [diesel]
+
+pages:
+- id: home
+  name: BCD regional emissions
+  path: /
+  type: emission
+  outcome_node: net_emissions
+  lead_title: Berkeley-Charleston-Dorchester regional emissions
+  lead_paragraph: >
+    The region's greenhouse gas emissions in 2023 and their outlook to 2050,
+    if current trends continue and with the measures already planned.
+
+scenarios:
+- id: baseline
+  name: Business as usual
+- id: default
+  default: true
+  name: Business as planned
+  all_actions_enabled: true

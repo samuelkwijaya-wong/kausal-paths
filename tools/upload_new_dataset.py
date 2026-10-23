@@ -47,6 +47,19 @@ if TYPE_CHECKING:
     from nodes.context import Context
 
 
+# Where pushes go unless --repo-url / --dvc-remote say otherwise. A local bare git
+# repository with a local-folder DVC remote is enough for working on a model offline
+# (see data/bcdcog-v2/setup_local.sh).
+DEFAULT_REPO_URL = 'https://github.com/kausaltech/dvctest.git'
+DEFAULT_DVC_REMOTE = 'kausal-s3'
+
+
+@dataclass(frozen=True)
+class DvcTarget:
+    repo_url: str = DEFAULT_REPO_URL
+    dvc_remote: str = DEFAULT_DVC_REMOTE
+
+
 def _node_metric_unit_str(m: NodeMetric) -> str:
     """Return unit as string for a NodeMetric (unit may be parsed Unit or default_unit string)."""
     u = getattr(m, 'unit', None) or getattr(m, 'default_unit', '')
@@ -797,7 +810,7 @@ def build_dvc_metadata(
     return metadata
 
 
-def push_to_dvc(
+def push_to_dvc(  # noqa: PLR0913, PLR0917
     df: pl.DataFrame | ppl.PathsDataFrame,
     output_path: str,
     dataset_name: str,
@@ -808,6 +821,7 @@ def push_to_dvc(
     index_columns_override: list[str] | None = None,
     sources: list[dict[str, str | None]] | None = None,
     dataset_attributes: dict[str, Any] | None = None,
+    target: DvcTarget = DvcTarget(),  # noqa: B008
 ) -> None:
     """
     Push dataset to DVC repository.
@@ -876,7 +890,7 @@ def push_to_dvc(
     )
 
     # Initialize repository
-    repo = Repository(repo_url='https://github.com/kausaltech/dvctest.git', dvc_remote='kausal-s3', repo_credentials=creds)
+    repo = Repository(repo_url=target.repo_url, dvc_remote=target.dvc_remote, repo_credentials=creds)
 
     # Add timestamp to force update
     import time
@@ -979,6 +993,7 @@ def process_dataset(
     sources_registry: dict[str, SourceRegistryEntry] | None = None,
     keep_empty_cells: bool = False,
     dataset_attributes_csv: str | None = None,
+    target: DvcTarget = DvcTarget(),  # noqa: B008
 ) -> None:
     """Process a single dataset of data."""
     print(f'\n==== Processing dataset: {dataset_name} ====\n')
@@ -1012,6 +1027,7 @@ def process_dataset(
             units=units,
             sources=sources,
             dataset_attributes=attributes,
+            target=target,
         )
 
 
@@ -1025,6 +1041,7 @@ def process_datasets(
     sources_registry: dict[str, SourceRegistryEntry] | None = None,
     keep_empty_cells: bool = False,
     dataset_attributes_csv: str | None = None,
+    target: DvcTarget = DvcTarget(),  # noqa: B008
 ) -> None:
     # Process all datasets
     # Process datasets
@@ -1033,7 +1050,7 @@ def process_datasets(
             print('Uploading the csv file as is, but checking for units.')
             units, full_df = extract_units_from_row(full_df)
             sources = build_sources_metadata(full_df, sources_registry)
-            push_to_dvc(full_df, outdvcpath, '', None, [], language, units=units, sources=sources)
+            push_to_dvc(full_df, outdvcpath, '', None, [], language, units=units, sources=sources, target=target)
         elif dataset_name == 'plain_csv_wide':
             print('Uploading csv with year columns pivoted to Year column.')
             units, full_df = extract_units_from_row(full_df)
@@ -1052,7 +1069,16 @@ def process_datasets(
             non_index = {'Value', 'Unit', 'UUID'}
             plain_index_cols = [c for c in full_df.columns if c not in non_index and c.lower() not in RESERVED_ROW_COLUMNS]
             push_to_dvc(
-                full_df, outdvcpath, '', None, [], language, units=units, index_columns_override=plain_index_cols, sources=sources
+                full_df,
+                outdvcpath,
+                '',
+                None,
+                [],
+                language,
+                units=units,
+                index_columns_override=plain_index_cols,
+                sources=sources,
+                target=target,
             )
         else:
             d = 'Dataset'
@@ -1070,6 +1096,7 @@ def process_datasets(
                     sources_registry,
                     keep_empty_cells,
                     dataset_attributes_csv,
+                    target,
                 )
             else:
                 print(f"No '{d}' column, treating the whole table as one dataset '{dataset_name}'.")
@@ -1083,6 +1110,7 @@ def process_datasets(
                     sources_registry,
                     keep_empty_cells,
                     dataset_attributes_csv,
+                    target,
                 )
     else:
         # Process all datasets
@@ -1103,6 +1131,7 @@ def process_datasets(
                 sources_registry,
                 keep_empty_cells,
                 dataset_attributes_csv,
+                target,
             )
 
 
@@ -1170,6 +1199,17 @@ def main():
         ),
     )
 
+    parser.add_argument(
+        '--repo-url',
+        default=DEFAULT_REPO_URL,
+        help=f'Git repository to push to (default: {DEFAULT_REPO_URL}). A local path to a bare repository works.',
+    )
+    parser.add_argument(
+        '--dvc-remote',
+        default=DEFAULT_DVC_REMOTE,
+        help=f"Name of the DVC remote, as configured in that repository's .dvc/config (default: {DEFAULT_DVC_REMOTE})",
+    )
+
     # Parse arguments
     args = parser.parse_args()
 
@@ -1200,6 +1240,7 @@ def main():
         sources_registry,
         keep_empty_cells,
         args.dataset_csv,
+        DvcTarget(repo_url=args.repo_url, dvc_remote=args.dvc_remote),
     )
 
 
