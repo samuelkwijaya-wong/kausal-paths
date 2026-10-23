@@ -11,7 +11,26 @@ upload described in `data/bcdcog/README.md`.
 From the kausal-paths folder, with the development environment working (database migrated):
 
 ```bash
-data/bcdcog-v2/setup_local.sh
+bash data/bcdcog-v2/setup_local.sh
+```
+
+(`bash` in front, because a downloaded copy of the script loses its run permission.) Git needs a name and
+e-mail set (`git config --global user.name …` / `user.email …`); the script says so if they are missing.
+
+**On macOS with Homebrew's GDAL** the upload fails with `ArrowKeyError: Attempted to register factory for
+scheme 'file'`. Homebrew's GDAL pulls in its own Apache Arrow, and that cannot be loaded next to pyarrow,
+whichever loads first. Use a GDAL without Arrow from conda-forge instead:
+
+```bash
+brew install micromamba
+micromamba create -y -p "$HOME/kausal-gdal" -c conda-forge libgdal-core geos
+```
+
+and point `local_settings.py` at it, with full paths (Python does not expand `~`):
+
+```python
+GDAL_LIBRARY_PATH = '/Users/<you>/kausal-gdal/lib/libgdal.dylib'
+GEOS_LIBRARY_PATH = '/Users/<you>/kausal-gdal/lib/libgeos_c.dylib'
 ```
 
 It does four things:

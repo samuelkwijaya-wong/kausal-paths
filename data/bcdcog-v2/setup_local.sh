@@ -28,6 +28,15 @@ if [ ! -f "$CONFIG" ]; then
   exit 1
 fi
 
+# The upload commits to the dataset repository under the git identity, and fails
+# with a bare KeyError on 'user.name' when there is none.
+if [ -z "$(git config user.name || true)" ] || [ -z "$(git config user.email || true)" ]; then
+  echo "Git needs a name and e-mail to record the upload. Set them once with:" >&2
+  echo '  git config --global user.name "Your Name"' >&2
+  echo '  git config --global user.email "you@example.com"' >&2
+  exit 1
+fi
+
 # 1. An empty dataset repository, created once.
 if [ ! -d "$GIT_DIR" ]; then
   echo "Creating local dataset repository in $DATA_DIR"
