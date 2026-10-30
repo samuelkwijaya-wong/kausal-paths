@@ -1,0 +1,20 @@
+Dataset,Metric,Quantity,Unit,lacap_sector,ie_energy_carrier,gpc_sector,scope,Year,Value,Source,Comment
+Crosswalk LACAP GPC,share,fraction,dimensionless,residential,electricity,i12,scope2,2018,1.0,Kausal crosswalk,"Electricity (LACAP Step 2) = GPC grid energy, scope 2"
+Crosswalk LACAP GPC,share,fraction,dimensionless,residential,natural_gas,i11,scope1,2018,1.0,Kausal crosswalk,Fuel combustion in the city = GPC scope 1
+Crosswalk LACAP GPC,share,fraction,dimensionless,residential,heating_oil,i11,scope1,2018,1.0,Kausal crosswalk,Fuel combustion in the city = GPC scope 1
+Crosswalk LACAP GPC,share,fraction,dimensionless,residential,solid_fuels,i11,scope1,2018,1.0,Kausal crosswalk,Fuel combustion in the city = GPC scope 1
+Crosswalk LACAP GPC,share,fraction,dimensionless,residential,lpg,i11,scope1,2018,1.0,Kausal crosswalk,Fuel combustion in the city = GPC scope 1
+Crosswalk LACAP GPC,share,fraction,dimensionless,commercial,electricity,i22,scope2,2018,1.0,Kausal crosswalk,"Electricity (LACAP Step 2) = GPC grid energy, scope 2"
+Crosswalk LACAP GPC,share,fraction,dimensionless,commercial,natural_gas,i21,scope1,2018,1.0,Kausal crosswalk,Fuel combustion in the city = GPC scope 1
+Crosswalk LACAP GPC,share,fraction,dimensionless,commercial,heating_oil,i21,scope1,2018,1.0,Kausal crosswalk,Fuel combustion in the city = GPC scope 1
+Crosswalk LACAP GPC,share,fraction,dimensionless,manufacturing_combustion,electricity,i32,scope2,2018,1.0,Kausal crosswalk,"Electricity (LACAP Step 2) = GPC grid energy, scope 2"
+Crosswalk LACAP GPC,share,fraction,dimensionless,manufacturing_combustion,natural_gas,i31,scope1,2018,1.0,Kausal crosswalk,Fuel combustion in the city = GPC scope 1
+Crosswalk LACAP GPC,share,fraction,dimensionless,manufacturing_combustion,heating_oil,i31,scope1,2018,1.0,Kausal crosswalk,Fuel combustion in the city = GPC scope 1
+Crosswalk LACAP GPC,share,fraction,dimensionless,transport,diesel,ii11,scope1,2018,1.0,Kausal crosswalk,Fuel combustion in the city = GPC scope 1
+Crosswalk LACAP GPC,share,fraction,dimensionless,transport,petrol,ii11,scope1,2018,1.0,Kausal crosswalk,Fuel combustion in the city = GPC scope 1
+Crosswalk LACAP GPC,share,fraction,dimensionless,transport,electricity,ii22,scope2,2018,1.0,Kausal crosswalk,"Electricity (LACAP Step 2) = GPC grid energy, scope 2"
+Crosswalk LACAP GPC,share,fraction,dimensionless,waste,non_energy,iii11,scope1,2018,1.0,Kausal crosswalk,Emissions inside the city boundary = GPC scope 1 (waste simplified to III.1.1)
+Crosswalk LACAP GPC,share,fraction,dimensionless,industrial_processes,non_energy,iv1,scope1,2018,1.0,Kausal crosswalk,Emissions inside the city boundary = GPC scope 1 (waste simplified to III.1.1)
+Crosswalk LACAP GPC,share,fraction,dimensionless,f_gases,non_energy,iv2,scope1,2018,1.0,Kausal crosswalk,Emissions inside the city boundary = GPC scope 1 (waste simplified to III.1.1)
+Crosswalk LACAP GPC,share,fraction,dimensionless,agriculture,non_energy,v1,scope1,2018,1.0,Kausal crosswalk,Emissions inside the city boundary = GPC scope 1 (waste simplified to III.1.1)
+Crosswalk LACAP GPC,share,fraction,dimensionless,lulucf,non_energy,v2,scope1,2018,1.0,Kausal crosswalk,Emissions inside the city boundary = GPC scope 1 (waste simplified to III.1.1)

@@ -1,0 +1,7 @@
+Name,Authority,URL,Description
+DCC CAP 2024-2029,Dublin City Council,https://www.dublincity.ie/environment-and-climate-action/acting-against-climate-change/climate-change-action-plan/dublin-city-council-climate-action-plan-2024-2029,"Climate Neutral Dublin 2030, DCC Climate Action Plan 2024-2029. Page numbers are printed page numbers."
+DCC CAP 2024-2029 (search excerpt),Dublin City Council,,Figures seen in web-search excerpts of the plan; not yet checked against the document.
+SEAI conversion factors,Sustainable Energy Authority of Ireland,https://www.seai.ie/data-and-insights/seai-statistics/conversion-factors/,Emission factors for fuels and the national grid.
+CSO Census,Central Statistics Office,https://www.cso.ie/,Census population.
+Kausal estimate,Kausal,,Demo estimate. See the Comment column and configs/data/nzc-ie/README.md for the method; replace with Codema/DCC data.
+Kausal crosswalk,Kausal,,"Mapping between LACAP (DECC Annex C), GPC and NZC categories; a settings table."

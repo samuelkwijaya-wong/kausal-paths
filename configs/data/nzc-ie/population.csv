@@ -1,0 +1,6 @@
+Dataset,Metric,Quantity,Unit,Year,Value,Source,Comment
+Population,population,population,cap,2016,554554,CSO Census,"Census 2016, Dublin City"
+Population,population,population,cap,2018,567000,Kausal estimate,estimate: interpolated between censuses 2016 and 2022
+Population,population,population,cap,2022,592713,DCC CAP 2024-2029,"Census 2022, CAP p.5"
+Population,population,population,cap,2030,640000,Kausal estimate,estimate: ~1% growth per year
+Population,population,population,cap,2050,720000,Kausal estimate,estimate: growth slowing to ~0.6% per year

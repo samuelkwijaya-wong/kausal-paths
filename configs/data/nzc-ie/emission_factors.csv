@@ -1,0 +1,12 @@
+Dataset,Metric,Quantity,Unit,ie_energy_carrier,Year,Value,Source,Comment
+Emission factors,emission_factor,emission_factor,t/MWh,natural_gas,2018,0.2047,SEAI conversion factors,SEAI conversion factor; held constant
+Emission factors,emission_factor,emission_factor,t/MWh,heating_oil,2018,0.2571,SEAI conversion factors,SEAI conversion factor; held constant
+Emission factors,emission_factor,emission_factor,t/MWh,lpg,2018,0.2296,SEAI conversion factors,SEAI conversion factor; held constant
+Emission factors,emission_factor,emission_factor,t/MWh,solid_fuels,2018,0.3406,SEAI conversion factors,SEAI conversion factor; held constant
+Emission factors,emission_factor,emission_factor,t/MWh,petrol,2018,0.2517,SEAI conversion factors,SEAI conversion factor; held constant
+Emission factors,emission_factor,emission_factor,t/MWh,diesel,2018,0.2639,SEAI conversion factors,SEAI conversion factor; held constant
+Emission factors,emission_factor,emission_factor,t/MWh,electricity,2018,0.375,SEAI conversion factors,SEAI national grid CO2 intensity 2018
+Emission factors,emission_factor,emission_factor,t/MWh,electricity,2023,0.26,Kausal estimate,estimate: national grid path (80% renewable electricity by 2030 under national CAP; zero by 2050); interpolated between points
+Emission factors,emission_factor,emission_factor,t/MWh,electricity,2030,0.1,Kausal estimate,estimate: national grid path (80% renewable electricity by 2030 under national CAP; zero by 2050); interpolated between points
+Emission factors,emission_factor,emission_factor,t/MWh,electricity,2040,0.03,Kausal estimate,estimate: national grid path (80% renewable electricity by 2030 under national CAP; zero by 2050); interpolated between points
+Emission factors,emission_factor,emission_factor,t/MWh,electricity,2050,0.0,Kausal estimate,estimate: national grid path (80% renewable electricity by 2030 under national CAP; zero by 2050); interpolated between points

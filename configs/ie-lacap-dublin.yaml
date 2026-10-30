@@ -1,0 +1,145 @@
+# Dublin City demo of the Irish LACAP core module, without the NetZeroCities layer.
+#
+# Proof of concept for Cork City Council, Dublin City Council and NetZeroCities.
+# The same Irish core is used with nzc.yaml in configs/nzc-ie.yaml (Mission cities).
+# Demo data: configs/data/nzc-ie/*.csv (see configs/data/nzc-ie/README.md for what is estimated).
+# The nzc-ie/* datasets must be uploaded to the dataset repository before this
+# instance can load them, e.g.
+#   python tools/upload_new_dataset.py -i configs/data/nzc-ie/energy_inventory.csv -o nzc-ie --sources-csv configs/data/nzc-ie/sources.csv
+# and the commit below updated to the resulting dataset repository commit.
+id: ie-lacap-dublin
+default_language: en
+supported_languages: []
+dataset_repo:
+  url: https://github.com/kausaltech/dvctest.git
+  commit: ed78d2d5522af1da60bb05a56cf90e534724ac7e  # TODO: update after uploading nzc-ie/* datasets
+  dvc_remote: kausal-s3
+name: Dublin City Climate Action Planner (LACAP demo)
+owner: Dublin City Council (demo)
+theme_identifier: default
+target_year: 2030
+model_end_year: 2050
+reference_year: 2018
+minimum_historical_year: 2018
+maximum_historical_year: 2018
+emission_unit: kt/a
+emission_forecast_from: 2019
+emission_dimensions: [lacap_sector]
+normalizations:
+- normalizer_node: ie_population
+  quantities:
+  - id: emissions
+    unit: t/cap/a
+  - id: energy
+    unit: MWh/cap/a
+  default: false
+features:
+  baseline_visible_in_graphs: true
+  show_significant_digits: 3
+  maximum_fraction_digits: 1
+  hide_node_details: false
+  hide_scenario_editor: false
+  requires_authentication: false
+  show_explanations: true
+
+include:
+- file: modules/ie/lacap.yaml
+  allow_override: true
+
+action_groups:
+- id: resilient_city
+  name_en: Resilient City
+  color: '#4e79a7'
+- id: resource_full_city
+  name_en: Resource-Full City
+  color: '#59a14f'
+- id: social_city
+  name_en: Social City
+  color: '#f28e2b'
+- id: national
+  name_en: National measures (Dublin share)
+  color: '#9c755f'
+
+dimensions:
+# Same ids and categories as in nzc.yaml, so data and crosswalks work in both setups.
+- id: scope
+  label_en: Scope
+  help_text_en: '1: Emissions inside the city. 2: Grid electricity. 3: Other indirect emissions.'
+  categories:
+  - id: scope1
+    aliases: [scope_1, '1']
+    label_en: Scope 1
+  - id: scope2
+    aliases: [scope_2, '2']
+    label_en: Scope 2
+  - id: scope3
+    aliases: [scope_3, '3']
+    label_en: Scope 3
+
+nodes:
+# Headline goal on the LACAP view (plan decision B): -51% by 2030 vs 2018, net zero 2050.
+# Goals are absolute values: 2,183.27 kt in 2018 (DCC CAP p.67) x 0.49 = 1,069.80 kt.
+- id: lacap_emissions
+  name_en: Dublin City emissions (LACAP inventory)
+  description_en: |
+    <p>Territorial emissions in the sectors of the DECC LACAP guidance (Annex C), with electricity
+    reallocated to the sectors that use it (Step 2). This is the view the headline goal is measured on:
+    −51% by 2030 compared with 2018, and climate neutrality by 2050.</p>
+    <p>Demo data: the 2018 total (2,183,270 tCO2e) is from the Dublin City Climate Action Plan
+    2024–2029, p.67. The split by sector and fuel is partly estimated; see the data notes.</p>
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  is_outcome: true
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+  goals:
+  - label_en: National climate objective (−51% by 2030, neutral by 2050)
+    is_main_goal: true
+    linear_interpolation: true
+    values:
+    - year: 2018
+      value: 2183.27
+    - year: 2030
+      value: 1069.80
+    - year: 2050
+      value: 0
+
+pages:
+- id: home
+  name_en: Dublin City Climate Action Planner
+  path: /
+  type: emission
+  outcome_node: lacap_emissions
+  lead_title: Dublin City emissions, LACAP inventory
+  lead_paragraph: |
+    <p>Demonstration model for an Irish Local Authority Climate Action Plan, built with Dublin City data
+    from the Climate Action Plan 2024–2029. Emissions follow the sectors of the DECC LACAP guidance;
+    the same inputs also give the GPC view used for CDP-ICLEI reporting.</p>
+    <p><strong>Demo data.</strong> The 2018 total is from the plan; the sector and fuel split and the size
+    of most actions are estimates, marked in the data files.</p>
+- id: gpc
+  name_en: GPC view (CDP-ICLEI)
+  path: /gpc
+  type: outcome
+  outcome_node: gpc_emissions
+  lead_title: GPC view for CDP-ICLEI reporting
+  lead_paragraph: The same emissions arranged by GHG Protocol for Cities sectors and scopes.
+  show_in_menus: true
+- id: council
+  name_en: Council's own emissions
+  path: /council
+  type: outcome
+  outcome_node: council_operations_emissions
+  lead_title: Dublin City Council's own operations
+  lead_paragraph: Buildings, public lighting and fleet, from the council's SEAI monitoring and reporting.
+  show_in_menus: true
+
+scenarios:
+- id: baseline
+  name_en: Baseline (no new actions)
+
+- id: default
+  default: true
+  name_en: Climate Action Plan 2024–2029
+  all_actions_enabled: true

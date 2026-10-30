@@ -1,0 +1,911 @@
+# Irish Local Authority Climate Action Plan (LACAP) core module.
+#
+# Builds the Irish inventory view (DECC Guidelines for LA Climate Action Plans,
+# Technical Annex C, March 2023) and a GPC view (CDP-ICLEI reporting) from one
+# set of inputs. It runs on its own (configs/ie-lacap-dublin.yaml) or next to
+# nzc.yaml (configs/nzc-ie.yaml), where it is shown side by side with
+# net_emissions and not connected to it (docs/nzp-city-inventory-compliance-pattern.md, Step 3).
+#
+# Settings that the 2029 LACAP guidance may change live in one place:
+# - the lacap_sector category list (below)
+# - the crosswalk datasets (nzc-ie/crosswalk_lacap_gpc, nzc-ie/crosswalk_lacap_nzc)
+# - base year and goals (in the including instance file)
+#
+# Datasets: configs/data/nzc-ie/*.csv, published as nzc-ie/<name>. See configs/data/nzc-ie/README.md.
+#
+# Required from the including file: dimension `scope` (scope1, scope2, scope3),
+# action groups resilient_city, resource_full_city, social_city, national.
+
+dimensions:
+
+- id: lacap_sector
+  label_en: LACAP sector
+  help_text_en: Sectors of the territorial Baseline Emissions Inventory in the DECC Guidelines for
+    Local Authority Climate Action Plans, Technical Annex C (aligned with the EPA national inventory).
+  categories:
+  - id: energy_industries
+    label_en: Energy industries
+    color: '#6f4e37'
+  - id: residential
+    label_en: Residential
+    color: '#4e79a7'
+  - id: commercial
+    label_en: Commercial and public services
+    color: '#f28e2b'
+  - id: manufacturing_combustion
+    label_en: Manufacturing combustion
+    color: '#9c755f'
+  - id: industrial_processes
+    label_en: Industrial processes
+    color: '#bab0ac'
+  - id: transport
+    label_en: Transport
+    color: '#e15759'
+  - id: agriculture
+    label_en: Agriculture
+    color: '#59a14f'
+  - id: lulucf
+    label_en: Land use, land-use change and forestry
+    color: '#8cd17d'
+  - id: waste
+    label_en: Waste and wastewater
+    color: '#b07aa1'
+  - id: f_gases
+    label_en: F-gases
+    color: '#76b7b2'
+
+- id: ie_energy_carrier
+  label_en: Energy carrier
+  categories:
+  - id: electricity
+    label_en: Electricity
+    color: '#edc948'
+  - id: natural_gas
+    label_en: Natural gas
+    color: '#4e79a7'
+  - id: heating_oil
+    label_en: Heating oil
+    color: '#9c755f'
+  - id: lpg
+    label_en: LPG
+    color: '#ff9da7'
+  - id: solid_fuels
+    label_en: Solid fuels (coal, peat)
+    color: '#555555'
+  - id: petrol
+    label_en: Petrol
+    color: '#e15759'
+  - id: diesel
+    label_en: Diesel
+    color: '#f28e2b'
+  - id: non_energy
+    label_en: Non-energy (process, waste, land)
+    color: '#bab0ac'
+
+- id: council_energy_carrier
+  label_en: Energy carrier (council operations)
+  categories:
+  - id: electricity
+    label_en: Electricity
+  - id: natural_gas
+    label_en: Natural gas
+  - id: diesel
+    label_en: Diesel
+  - id: other
+    label_en: Other
+
+# Copied from configs/frameworks/standard_dims.yaml (gpc_sector only, so that
+# the including file's own ghg/scope/sector dimensions are not replaced).
+- id: gpc_sector
+  label_en: GPC sector
+  categories:
+  - id: i11
+    label_en: I.1.1 Residential fuel
+  - id: i12
+    label_en: I.1.2 Residential grid energy
+  - id: i13
+    label_en: I.1.3 Residential T&D loss
+  - id: i21
+    label_en: I.2.1 Commercial & institutional fuel
+  - id: i22
+    label_en: I.2.2 Commercial & institutional grid energy
+  - id: i23
+    label_en: I.2.3 Commercial & institutional T&D loss
+  - id: i31
+    label_en: I.3.1 Manufacturing fuel
+  - id: i32
+    label_en: I.3.2 Manufacturing grid energy
+  - id: i33
+    label_en: I.3.3 Manufacturing T&D loss
+  - id: i41
+    label_en: I.4.1 Energy industries fuel
+  - id: i42
+    label_en: I.4.2 Energy industries grid energy
+  - id: i43
+    label_en: I.4.3 Energy industries T&D loss
+  - id: i51
+    label_en: I.5.1 Agriculture, forestry & fishing fuel
+  - id: i52
+    label_en: I.5.2 Agriculture, forestry & fishing grid energy
+  - id: i53
+    label_en: I.5.3 Agriculture, forestry & fishing T&D loss
+  - id: i61
+    label_en: I.6.1 Non-specified fuel
+  - id: i62
+    label_en: I.6.2 Non-specified grid energy
+  - id: i63
+    label_en: I.6.3 Non-specified T&D loss
+  - id: i71
+    label_en: I.7.1 Fugitive emissions, coal
+  - id: i81
+    label_en: I.8.1 Fugitive emissions, oil & natural gas
+  - id: ii11
+    label_en: II.1.1 On-road fuel
+  - id: ii12
+    label_en: II.1.2 On-road grid energy
+  - id: ii13
+    label_en: II.1.3 On-road transboundary
+  - id: ii21
+    label_en: II.2.1 Railway fuel
+  - id: ii22
+    label_en: II.2.2 Railway grid energy
+  - id: ii23
+    label_en: II.2.3 Railway transboundary
+  - id: ii31
+    label_en: II.3.1 Waterborne fuel
+  - id: ii32
+    label_en: II.3.2 Waterborne grid energy
+  - id: ii33
+    label_en: II.3.3 Waterborne transboundary
+  - id: ii41
+    label_en: II.4.1 Aviation fuel
+  - id: ii42
+    label_en: II.4.2 Aviation grid energy
+  - id: ii43
+    label_en: II.4.3 Aviation transboundary
+  - id: ii51
+    label_en: II.5.1 Off-road fuel
+  - id: ii52
+    label_en: II.5.2 Off-road grid energy
+  - id: ii53
+    label_en: II.5.3 Off-road transboundary
+  - id: iii11
+    label_en: III.1.1 Solid waste disposed in the city
+  - id: iii12
+    label_en: III.1.2 Solid waste disposed outside the city
+  - id: iii21
+    label_en: III.2.1 Biological treatment in the city
+  - id: iii22
+    label_en: III.2.2 Biological treatment outside the city
+  - id: iii31
+    label_en: III.3.1 Incineration in the city
+  - id: iii32
+    label_en: III.3.2 Incineration outside the city
+  - id: iii41
+    label_en: III.4.1 Wastewater treated in the city
+  - id: iii42
+    label_en: III.4.2 Wastewater treated outside the city
+  - id: iv1
+    label_en: IV.1 Industrial processes
+  - id: iv2
+    label_en: IV.2 Product use
+  - id: v1
+    label_en: V.1 Livestock
+  - id: v2
+    label_en: V.2 Land
+  - id: v3
+    label_en: V.3 Aggregate sources and non-CO2 emissions on land
+
+nodes:
+
+# ---------------------------------------------------------------------------
+# Activity and factors
+
+- id: ie_population
+  name_en: Population
+  type: generic.GenericNode
+  quantity: population
+  unit: cap
+  input_datasets:
+  - id: nzc-ie/population
+    column: population
+    forecast_from: 2023
+
+- id: ie_energy_consumption
+  name_en: Energy use by sector and carrier
+  description_en: Final energy use in the city by LACAP sector and energy carrier (Annex C Tier 2
+    table). Held at the base-year level in the baseline; actions change it.
+  type: generic.GenericNode
+  quantity: energy
+  unit: GWh/a
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+  input_datasets:
+  - id: nzc-ie/energy_inventory
+    column: energy
+    forecast_from: 2019
+
+- id: ie_emission_factors
+  name_en: Emission factors
+  description_en: SEAI conversion factors for fuels, and the national grid CO2 intensity for
+    electricity (LACAP Step 2). The grid path after 2018 is an estimate of national decarbonisation.
+  type: generic.GenericNode
+  quantity: emission_factor
+  unit: t/MWh
+  input_dimensions: [ie_energy_carrier]
+  output_dimensions: [ie_energy_carrier]
+  input_datasets:
+  - id: nzc-ie/emission_factors
+    column: emission_factor
+    forecast_from: 2019
+
+# ---------------------------------------------------------------------------
+# Emissions
+
+- id: ie_energy_emissions
+  name_en: Energy emissions
+  description_en: Energy use × emission factor. Electricity is counted where it is used
+    (LACAP Step 2).
+  type: generic.GenericNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+  input_nodes:
+  - id: ie_energy_consumption
+  - id: ie_emission_factors
+    tags: [non_additive]
+    to_dimensions:
+    - id: ie_energy_carrier
+
+- id: ie_direct_emissions
+  name_en: Non-energy emissions
+  description_en: Emissions entered directly (plan decision C) for waste and wastewater, F-gases,
+    industrial processes, agriculture and land use.
+  type: generic.GenericNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+  input_datasets:
+  - id: nzc-ie/direct_emissions
+    column: emissions
+    forecast_from: 2019
+
+# One node per LACAP sector, so the public UI shows the inventory sectors
+# as subsectors of lacap_emissions (each opens into its energy carrier split).
+
+- id: lacap_residential_emissions
+  name_en: Residential
+  color: '#4e79a7'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [ie_energy_carrier]
+  output_dimensions: [ie_energy_carrier]
+  input_nodes:
+  - id: ie_energy_emissions
+    from_dimensions:
+    - id: lacap_sector
+      categories: [residential]
+      flatten: true
+  output_nodes:
+  - id: lacap_emissions
+    to_dimensions:
+    - id: lacap_sector
+      categories: [residential]
+    - id: ie_energy_carrier
+
+- id: lacap_commercial_emissions
+  name_en: Commercial and public services
+  color: '#f28e2b'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [ie_energy_carrier]
+  output_dimensions: [ie_energy_carrier]
+  input_nodes:
+  - id: ie_energy_emissions
+    from_dimensions:
+    - id: lacap_sector
+      categories: [commercial]
+      flatten: true
+  output_nodes:
+  - id: lacap_emissions
+    to_dimensions:
+    - id: lacap_sector
+      categories: [commercial]
+    - id: ie_energy_carrier
+
+- id: lacap_manufacturing_combustion_emissions
+  name_en: Manufacturing combustion
+  color: '#9c755f'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [ie_energy_carrier]
+  output_dimensions: [ie_energy_carrier]
+  input_nodes:
+  - id: ie_energy_emissions
+    from_dimensions:
+    - id: lacap_sector
+      categories: [manufacturing_combustion]
+      flatten: true
+  output_nodes:
+  - id: lacap_emissions
+    to_dimensions:
+    - id: lacap_sector
+      categories: [manufacturing_combustion]
+    - id: ie_energy_carrier
+
+- id: lacap_transport_emissions
+  name_en: Transport
+  color: '#e15759'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [ie_energy_carrier]
+  output_dimensions: [ie_energy_carrier]
+  input_nodes:
+  - id: ie_energy_emissions
+    from_dimensions:
+    - id: lacap_sector
+      categories: [transport]
+      flatten: true
+  output_nodes:
+  - id: lacap_emissions
+    to_dimensions:
+    - id: lacap_sector
+      categories: [transport]
+    - id: ie_energy_carrier
+
+- id: lacap_waste_emissions
+  name_en: Waste and wastewater
+  color: '#b07aa1'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [ie_energy_carrier]
+  output_dimensions: [ie_energy_carrier]
+  input_nodes:
+  - id: ie_direct_emissions
+    from_dimensions:
+    - id: lacap_sector
+      categories: [waste]
+      flatten: true
+  output_nodes:
+  - id: lacap_emissions
+    to_dimensions:
+    - id: lacap_sector
+      categories: [waste]
+    - id: ie_energy_carrier
+
+- id: lacap_f_gases_emissions
+  name_en: F-gases
+  color: '#76b7b2'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [ie_energy_carrier]
+  output_dimensions: [ie_energy_carrier]
+  input_nodes:
+  - id: ie_direct_emissions
+    from_dimensions:
+    - id: lacap_sector
+      categories: [f_gases]
+      flatten: true
+  output_nodes:
+  - id: lacap_emissions
+    to_dimensions:
+    - id: lacap_sector
+      categories: [f_gases]
+    - id: ie_energy_carrier
+
+- id: lacap_industrial_processes_emissions
+  name_en: Industrial processes
+  color: '#bab0ac'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [ie_energy_carrier]
+  output_dimensions: [ie_energy_carrier]
+  input_nodes:
+  - id: ie_direct_emissions
+    from_dimensions:
+    - id: lacap_sector
+      categories: [industrial_processes]
+      flatten: true
+  output_nodes:
+  - id: lacap_emissions
+    to_dimensions:
+    - id: lacap_sector
+      categories: [industrial_processes]
+    - id: ie_energy_carrier
+
+- id: lacap_agriculture_emissions
+  name_en: Agriculture
+  color: '#59a14f'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [ie_energy_carrier]
+  output_dimensions: [ie_energy_carrier]
+  input_nodes:
+  - id: ie_direct_emissions
+    from_dimensions:
+    - id: lacap_sector
+      categories: [agriculture]
+      flatten: true
+  output_nodes:
+  - id: lacap_emissions
+    to_dimensions:
+    - id: lacap_sector
+      categories: [agriculture]
+    - id: ie_energy_carrier
+
+- id: lacap_lulucf_emissions
+  name_en: Land use, land-use change and forestry
+  color: '#8cd17d'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [ie_energy_carrier]
+  output_dimensions: [ie_energy_carrier]
+  input_nodes:
+  - id: ie_direct_emissions
+    from_dimensions:
+    - id: lacap_sector
+      categories: [lulucf]
+      flatten: true
+  output_nodes:
+  - id: lacap_emissions
+    to_dimensions:
+    - id: lacap_sector
+      categories: [lulucf]
+    - id: ie_energy_carrier
+
+- id: lacap_emissions
+  name_en: Dublin City emissions (LACAP inventory)
+  description_en: |
+    <p>Territorial emissions in the sectors of the DECC LACAP guidance (Annex C), with electricity
+    reallocated to the sectors that use it (Step 2). This is the view the headline goal is measured on:
+    −51% by 2030 compared with 2018, and climate neutrality by 2050.</p>
+    <p>Demo data: the 2018 total (2,183,270 tCO2e) is from the Dublin City Climate Action Plan
+    2024–2029, p.67. The split by sector and fuel is partly estimated; see the data notes.</p>
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  is_outcome: true
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+
+- id: energy_industries_step1
+  name_en: Energy industries in the city (LACAP Step 1)
+  description_en: |
+    <p>Emissions at power and heat plants inside the city boundary (Annex C Step 1). Reported next to
+    the inventory but not added to it, because Step 2 already counts electricity where it is used.</p>
+    <p>Demo value: Dublin Waste-to-Energy at Poolbeg only, estimated. Gas-fired power stations are
+    not yet included.</p>
+  type: generic.GenericNode
+  quantity: emissions
+  unit: kt/a
+  is_outcome: true
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+  input_datasets:
+  - id: nzc-ie/energy_industries
+    column: emissions
+    forecast_from: 2019
+
+- id: council_operations_emissions
+  name_en: Council's own emissions
+  description_en: Emissions from Dublin City Council's buildings, public lighting and fleet (SEAI
+    monitoring and reporting). A part of the city total, never added to it. Plan pp.65–67.
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t/a
+  is_outcome: true
+  input_dimensions: [council_energy_carrier]
+  output_dimensions: [council_energy_carrier]
+  input_datasets:
+  - id: nzc-ie/council_operations
+    column: emissions
+    forecast_from: 2022
+  goals:
+  - label_en: Public sector goal (−51% by 2030 vs 2018)
+    linear_interpolation: true
+    values:
+    - year: 2018
+      value: 38326
+    - year: 2030
+      value: 18780
+
+# ---------------------------------------------------------------------------
+# GPC view for CDP-ICLEI reporting
+
+- id: lacap_gpc_crosswalk
+  name_en: Crosswalk from LACAP to GPC
+  description_en: Settings table that says which GPC sector and scope each LACAP row belongs to.
+  type: generic.GenericNode
+  quantity: fraction
+  unit: dimensionless
+  input_dimensions: [lacap_sector, ie_energy_carrier, gpc_sector, scope]
+  output_dimensions: [lacap_sector, ie_energy_carrier, gpc_sector, scope]
+  input_datasets:
+  - id: nzc-ie/crosswalk_lacap_gpc
+    column: share
+    forecast_from: 2019
+
+- id: gpc_emissions_by_lacap_row
+  name_en: GPC emissions by LACAP row
+  type: generic.GenericNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [lacap_sector, ie_energy_carrier, gpc_sector, scope]
+  output_dimensions: [lacap_sector, ie_energy_carrier, gpc_sector, scope]
+  input_nodes:
+  - id: lacap_emissions
+    tags: [non_additive]
+  - id: lacap_gpc_crosswalk
+    tags: [non_additive]
+  output_nodes:
+  - id: gpc_emissions
+    from_dimensions:
+    - id: lacap_sector
+      flatten: true
+    - id: ie_energy_carrier
+      flatten: true
+
+- id: gpc_emissions
+  name_en: Dublin City emissions (GPC, BASIC+)
+  description_en: The same emissions arranged by the GHG Protocol for Cities (GPC) sectors and scopes,
+    for CDP-ICLEI Track reporting. Energy generation in the city (I.4.4) is reported separately.
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  is_outcome: true
+  input_dimensions: [gpc_sector, scope]
+  output_dimensions: [gpc_sector, scope]
+  output_nodes:
+  - id: gpc_basic_emissions
+    from_dimensions:
+    - id: gpc_sector
+      categories: [i11, i12, i13, i21, i22, i23, i31, i32, i33, i41, i42, i43, i51, i52, i53, i61, i62, i63,
+        i71, i81, ii11, ii12, ii13, ii21, ii22, ii23, ii31, ii32, ii33, ii41, ii42, ii43, ii51, ii52, ii53,
+        iii11, iii12, iii21, iii22, iii31, iii32, iii41, iii42]
+      flatten: true
+
+- id: gpc_basic_emissions
+  name_en: Dublin City emissions (GPC BASIC)
+  description_en: GPC BASIC = stationary energy, transport and waste (sectors I–III). BASIC+ adds
+    industrial processes, product use and land (IV–V).
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  is_outcome: true
+  input_dimensions: [scope]
+  output_dimensions: [scope]
+
+# ---------------------------------------------------------------------------
+# Action impacts: each action sets a KPI (homes, buildings, MWp, shares);
+# the impact node turns it into energy or emissions with a per-unit impact.
+
+- id: r1_social_housing_impact
+  name_en: Energy change from social housing retrofits
+  type: generic.GenericNode
+  quantity: energy
+  unit: GWh/a
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+  input_datasets:
+  - id: nzc-ie/action_unit_impacts
+    column: r1_social_housing_homes
+    forecast_from: 2019
+  output_nodes:
+  - id: ie_energy_consumption
+
+- id: r2_public_buildings_impact
+  name_en: Energy change from public building upgrades
+  type: generic.GenericNode
+  quantity: energy
+  unit: GWh/a
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+  input_datasets:
+  - id: nzc-ie/action_unit_impacts
+    column: r2_public_buildings
+    forecast_from: 2019
+  output_nodes:
+  - id: ie_energy_consumption
+
+- id: r3_1_district_heating_impact
+  name_en: Energy change from district heating
+  type: generic.GenericNode
+  quantity: energy
+  unit: GWh/a
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+  input_datasets:
+  - id: nzc-ie/action_unit_impacts
+    column: r3_1_district_heating_homes
+    forecast_from: 2019
+  output_nodes:
+  - id: ie_energy_consumption
+
+- id: r3_2_council_solar_impact
+  name_en: Electricity from council solar PV
+  type: generic.GenericNode
+  quantity: energy
+  unit: GWh/a
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+  input_datasets:
+  - id: nzc-ie/action_unit_impacts
+    column: r3_2_council_solar_mwp
+    forecast_from: 2019
+  output_nodes:
+  - id: ie_energy_consumption
+
+- id: r3_4_public_lighting_impact
+  name_en: Electricity saved by LED public lighting
+  type: generic.GenericNode
+  quantity: energy
+  unit: GWh/a
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+  input_datasets:
+  - id: nzc-ie/action_unit_impacts
+    column: r3_4_led_share
+    forecast_from: 2019
+  output_nodes:
+  - id: ie_energy_consumption
+
+- id: rf_waste_reduction_impact
+  name_en: Emissions avoided in waste and wastewater
+  type: generic.GenericNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+  input_datasets:
+  - id: nzc-ie/action_unit_impacts
+    column: rf_waste_reduction
+    forecast_from: 2019
+  output_nodes:
+  - id: ie_direct_emissions
+
+- id: s1_modal_shift_impact
+  name_en: Car fuel saved by modal shift
+  type: generic.GenericNode
+  quantity: energy
+  unit: GWh/a
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+  input_datasets:
+  - id: nzc-ie/action_unit_impacts
+    column: s1_car_km_shifted
+    forecast_from: 2019
+  output_nodes:
+  - id: ie_energy_consumption
+
+- id: national_retrofit_impact
+  name_en: Energy change from private home retrofits
+  type: generic.GenericNode
+  quantity: energy
+  unit: GWh/a
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+  input_datasets:
+  - id: nzc-ie/action_unit_impacts
+    column: national_homes_b2
+    forecast_from: 2019
+  output_nodes:
+  - id: ie_energy_consumption
+
+- id: national_ev_impact
+  name_en: Energy change from electric cars
+  type: generic.GenericNode
+  quantity: energy
+  unit: GWh/a
+  input_dimensions: [lacap_sector, ie_energy_carrier]
+  output_dimensions: [lacap_sector, ie_energy_carrier]
+  input_datasets:
+  - id: nzc-ie/action_unit_impacts
+    column: national_ev_share
+    forecast_from: 2019
+  output_nodes:
+  - id: ie_energy_consumption
+
+# ---------------------------------------------------------------------------
+# Project-level planning (plan section 8): named projects are a part of their
+# action, never added on top. The remainder shows what is not yet tied to a project.
+
+- id: ddhs_phase_1_homes
+  name_en: 'Project: Dublin District Heating phase 1 (homes connected)'
+  description_en: Home-equivalents connected by phase 1 of the Dublin District Heating System
+    (Poolbeg–Ringsend). A part of action R3.1.
+  type: generic.GenericNode
+  quantity: number
+  unit: dimensionless
+  input_datasets:
+  - id: nzc-ie/project_targets
+    column: ddhs_phase_1_homes
+    forecast_from: 2024
+  output_nodes:
+  - id: r3_1_homes_not_tied_to_projects
+    tags: [arithmetic_inverse]
+
+- id: r3_1_homes_not_tied_to_projects
+  name_en: R3.1 homes not yet tied to a named project
+  description_en: Action R3.1 target minus named projects. A negative value means the projects add up
+    to more than the action and should be checked.
+  type: generic.GenericNode
+  quantity: number
+  unit: dimensionless
+
+actions:
+
+- id: r1_social_housing_retrofit
+  name_en: R1 Social housing regeneration and retrofit
+  description_en: Retrofit council homes to BER B2 with heat pumps, starting with the flagship
+    regenerations (Dominick Street Lower, Oliver Bond House, Constitution Hill, Pearse House).
+    KPI is homes retrofitted. Plan p.12 and pp.38–39; national CAP BE/23/11, BE/23/25.
+  type: simple.AdditiveAction
+  group: resilient_city
+  quantity: number
+  unit: dimensionless
+  input_datasets:
+  - id: nzc-ie/action_targets
+    column: r1_social_housing_homes
+    forecast_from: 2024
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: r1_social_housing_impact
+    tags: [non_additive]
+    to_dimensions: []
+
+- id: r2_public_buildings_pathfinder
+  name_en: R2 Public buildings regeneration (Pathfinder)
+  description_en: Deep retrofit of council buildings (Civic Offices, Mansion House, City Hall) and the
+    SEAI Pathfinder programme. KPI is buildings upgraded. Plan p.39; national CAP BE/23/30–39.
+  type: simple.AdditiveAction
+  group: resilient_city
+  quantity: number
+  unit: dimensionless
+  input_datasets:
+  - id: nzc-ie/action_targets
+    column: r2_public_buildings
+    forecast_from: 2024
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: r2_public_buildings_impact
+    tags: [non_additive]
+    to_dimensions: []
+
+- id: r3_1_dublin_district_heating
+  name_en: R3.1 Dublin District Heating System
+  description_en: Heat from the Poolbeg waste-to-energy plant (90 MW, up to 50,000–80,000 homes)
+    replaces gas heating. KPI is home-equivalents connected. EUR 42.7M in 2024–26. Plan p.25 and
+    p.39; national CAP BE/23/27, BE/23/28.
+  type: simple.AdditiveAction
+  group: resilient_city
+  quantity: number
+  unit: dimensionless
+  input_datasets:
+  - id: nzc-ie/action_targets
+    column: r3_1_district_heating_homes
+    forecast_from: 2024
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: r3_1_district_heating_impact
+    tags: [non_additive]
+    to_dimensions: []
+  - id: r3_1_homes_not_tied_to_projects
+
+- id: r3_2_council_solar_pv
+  name_en: R3.2 Solar PV on council sites
+  description_en: Solar PV, starting with the Davitt Road car port. Only local generation counts;
+    the national grid factor is not changed by local action. KPI is MWp installed. Plan p.39.
+  type: simple.AdditiveAction
+  group: resilient_city
+  quantity: number
+  unit: MW
+  input_datasets:
+  - id: nzc-ie/action_targets
+    column: r3_2_council_solar_mwp
+    forecast_from: 2024
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: r3_2_council_solar_impact
+    tags: [non_additive]
+    to_dimensions: []
+
+- id: r3_4_public_lighting_led
+  name_en: R3.4 LED public lighting
+  description_en: Upgrade public lighting to LED with a central management system. The plan estimates
+    2,500 tCO2e avoided; EUR 37.1M. KPI is the share of lights converted. Plan p.40; national CAP PS/23/2.
+  type: simple.AdditiveAction
+  group: resilient_city
+  quantity: fraction
+  unit: dimensionless
+  input_datasets:
+  - id: nzc-ie/action_targets
+    column: r3_4_led_share
+    forecast_from: 2024
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: r3_4_public_lighting_impact
+    tags: [non_additive]
+    to_dimensions: []
+
+- id: rf_circular_economy_waste
+  name_en: RF Circular economy and waste reduction
+  description_en: Re-use, repair and circular enterprises (R3.5, RF4) reduce waste and wastewater
+    emissions. KPI is the share of waste-sector emissions avoided. Plan pp.40–42; national CAP CE/23/2–9.
+  type: simple.AdditiveAction
+  group: resource_full_city
+  quantity: fraction
+  unit: dimensionless
+  input_datasets:
+  - id: nzc-ie/action_targets
+    column: rf_waste_reduction
+    forecast_from: 2024
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: rf_waste_reduction_impact
+    tags: [non_additive]
+    to_dimensions: []
+
+- id: s1_active_travel_network
+  name_en: S1 Connected active travel network
+  description_en: 95% of residents within 400 m of the active travel network moves car trips to
+    walking, cycling and public transport. KPI is the share of 2018 car-km shifted. Plan p.21.
+  type: simple.AdditiveAction
+  group: social_city
+  quantity: fraction
+  unit: dimensionless
+  input_datasets:
+  - id: nzc-ie/action_targets
+    column: s1_car_km_shifted
+    forecast_from: 2024
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: s1_modal_shift_impact
+    tags: [non_additive]
+    to_dimensions: []
+
+- id: national_home_retrofit_b2
+  name_en: National retrofit programme (homes to B2), Dublin share
+  description_en: Dublin City's share of the national target of 500,000 homes retrofitted to B2 by
+    2030. A national measure the council supports but does not lead. KPI is private homes retrofitted.
+  type: simple.AdditiveAction
+  group: national
+  quantity: number
+  unit: dimensionless
+  input_datasets:
+  - id: nzc-ie/action_targets
+    column: national_homes_b2
+    forecast_from: 2024
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: national_retrofit_impact
+    tags: [non_additive]
+    to_dimensions: []
+
+- id: national_ev_transition
+  name_en: National electric vehicle transition, Dublin share
+  description_en: Electric cars replace petrol and diesel cars in line with national targets, supported
+    by public charging (R1.5, ZEVI). KPI is the share of 2018 car-km driven electric.
+  type: simple.AdditiveAction
+  group: national
+  quantity: fraction
+  unit: dimensionless
+  input_datasets:
+  - id: nzc-ie/action_targets
+    column: national_ev_share
+    forecast_from: 2024
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: national_ev_impact
+    tags: [non_additive]
+    to_dimensions: []

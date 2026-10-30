@@ -1,0 +1,9 @@
+Dataset,Metric,Quantity,Unit,council_energy_carrier,Year,Value,Source,Comment
+Council operations,emissions,emissions,t/a,electricity,2021,16431,DCC CAP 2024-2029,"30,427 tCO2 in 2021 (CAP p.66) x 54.0% carrier share (Table A3.3, p.66)"
+Council operations,emissions,emissions,t/a,electricity,2018,23897,DCC CAP 2024-2029,"derived: 2018 total 38,326 tCO2 (CAP p.67) minus 2018 non-electricity"
+Council operations,emissions,emissions,t/a,natural_gas,2021,10649,DCC CAP 2024-2029,"30,427 tCO2 in 2021 (CAP p.66) x 35.0% carrier share (Table A3.3, p.66)"
+Council operations,emissions,emissions,t/a,natural_gas,2018,10979,DCC CAP 2024-2029,"derived: 2021 non-electricity emissions / 0.97 (CAP p.66: -3% vs 2018), split by 2021 shares"
+Council operations,emissions,emissions,t/a,diesel,2021,2708,DCC CAP 2024-2029,"30,427 tCO2 in 2021 (CAP p.66) x 8.9% carrier share (Table A3.3, p.66)"
+Council operations,emissions,emissions,t/a,diesel,2018,2792,DCC CAP 2024-2029,"derived: 2021 non-electricity emissions / 0.97 (CAP p.66: -3% vs 2018), split by 2021 shares"
+Council operations,emissions,emissions,t/a,other,2021,639,DCC CAP 2024-2029,"30,427 tCO2 in 2021 (CAP p.66) x 2.1% carrier share (Table A3.3, p.66)"
+Council operations,emissions,emissions,t/a,other,2018,659,DCC CAP 2024-2029,"derived: 2021 non-electricity emissions / 0.97 (CAP p.66: -3% vs 2018), split by 2021 shares"

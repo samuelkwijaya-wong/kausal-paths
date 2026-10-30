@@ -1,0 +1,7 @@
+Dataset,Metric,Quantity,Unit,Year,Value,Source,Comment
+Project targets,ddhs_phase_1_homes,number,dimensionless,2018,0,DCC CAP 2024-2029; Kausal estimate,"estimate: Dublin District Heating System phase 1 (Poolbeg-Ringsend), home-equivalents connected; part of action R3.1"
+Project targets,ddhs_phase_1_homes,number,dimensionless,2023,0,DCC CAP 2024-2029; Kausal estimate,"estimate: Dublin District Heating System phase 1 (Poolbeg-Ringsend), home-equivalents connected; part of action R3.1"
+Project targets,ddhs_phase_1_homes,number,dimensionless,2026,0,DCC CAP 2024-2029; Kausal estimate,"estimate: Dublin District Heating System phase 1 (Poolbeg-Ringsend), home-equivalents connected; part of action R3.1"
+Project targets,ddhs_phase_1_homes,number,dimensionless,2027,3000,DCC CAP 2024-2029; Kausal estimate,"estimate: Dublin District Heating System phase 1 (Poolbeg-Ringsend), home-equivalents connected; part of action R3.1"
+Project targets,ddhs_phase_1_homes,number,dimensionless,2030,6000,DCC CAP 2024-2029; Kausal estimate,"estimate: Dublin District Heating System phase 1 (Poolbeg-Ringsend), home-equivalents connected; part of action R3.1"
+Project targets,ddhs_phase_1_homes,number,dimensionless,2050,6000,DCC CAP 2024-2029; Kausal estimate,"estimate: Dublin District Heating System phase 1 (Poolbeg-Ringsend), home-equivalents connected; part of action R3.1"

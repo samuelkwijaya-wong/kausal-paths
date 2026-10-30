@@ -1,0 +1,6 @@
+Dataset,Metric,Quantity,Unit,lacap_sector,ie_energy_carrier,Year,Value,Source,Comment
+Direct emissions,emissions,emissions,t/a,waste,non_energy,2018,76414,Kausal estimate,estimate: landfill gas and wastewater treatment in the city (Ringsend WwTP); EPA national share adjusted
+Direct emissions,emissions,emissions,t/a,f_gases,non_energy,2018,54582,Kausal estimate,estimate: refrigeration and air conditioning; EPA national F-gas share
+Direct emissions,emissions,emissions,t/a,industrial_processes,non_energy,2018,17466,Kausal estimate,estimate: small process emissions in an urban area
+Direct emissions,emissions,emissions,t/a,agriculture,non_energy,2018,2183,Kausal estimate,estimate: very little farming inside Dublin City
+Direct emissions,emissions,emissions,t/a,lulucf,non_energy,2018,2183,Kausal estimate,"estimate: urban land-use change, near zero"

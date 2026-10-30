@@ -1,0 +1,19 @@
+Dataset,Metric,Quantity,Unit,lacap_sector,ie_energy_carrier,Year,Value,Source,Comment
+Action unit impacts,r1_social_housing_homes,energy,MWh/a,residential,natural_gas,2018,-10.0,Kausal estimate,"estimate: per home, deep retrofit to B2 with heat pump: -10 MWh gas, +2.5 MWh electricity"
+Action unit impacts,r1_social_housing_homes,energy,MWh/a,residential,electricity,2018,2.5,Kausal estimate,"estimate: per home, deep retrofit to B2 with heat pump: -10 MWh gas, +2.5 MWh electricity"
+Action unit impacts,r2_public_buildings,energy,MWh/a,commercial,natural_gas,2018,-300.0,Kausal estimate,"estimate: per public building: -300 MWh gas, +60 MWh electricity (heat pump)"
+Action unit impacts,r2_public_buildings,energy,MWh/a,commercial,electricity,2018,60.0,Kausal estimate,"estimate: per public building: -300 MWh gas, +60 MWh electricity (heat pump)"
+Action unit impacts,r3_1_district_heating_homes,energy,MWh/a,residential,natural_gas,2018,-5.0,Kausal estimate,"estimate: per home-equivalent, 10 MWh gas heat replaced by waste heat from Poolbeg, half homes and half businesses. The heat source is counted under energy industries/waste"
+Action unit impacts,r3_1_district_heating_homes,energy,MWh/a,commercial,natural_gas,2018,-5.0,Kausal estimate,"estimate: per home-equivalent, 10 MWh gas heat replaced by waste heat from Poolbeg, half homes and half businesses. The heat source is counted under energy industries/waste"
+Action unit impacts,r3_2_council_solar_mwp,energy_factor,MWh/a/MW,commercial,electricity,2018,-900.0,Kausal estimate,estimate: 900 MWh per MWp per year in Dublin
+Action unit impacts,r3_4_led_share,energy,MWh/a,commercial,electricity,2018,-10000.0,DCC CAP 2024-2029; Kausal estimate,"Saving at 100% LED, sized so it avoids about 2,500 tCO2e at the 2023 grid factor (CAP p.40). Public lighting uses 46.6 GWh primary energy (p.65)"
+Action unit impacts,rf_waste_reduction,emissions,t/a,waste,non_energy,2018,-76414,Kausal estimate,estimate: waste-sector emissions removed at 100% (= estimated 2018 waste emissions)
+Action unit impacts,s1_car_km_shifted,energy,MWh/a,transport,petrol,2018,-741635,Kausal estimate,estimate: car fuel at 100% shift. Cars use ~95% of petrol and ~45% of diesel; extra bus/rail energy ignored
+Action unit impacts,s1_car_km_shifted,energy,MWh/a,transport,diesel,2018,-577048,Kausal estimate,estimate: car fuel at 100% shift. Cars use ~95% of petrol and ~45% of diesel; extra bus/rail energy ignored
+Action unit impacts,national_homes_b2,energy,MWh/a,residential,natural_gas,2018,-6.0,Kausal estimate,estimate: per private home retrofitted to B2
+Action unit impacts,national_homes_b2,energy,MWh/a,residential,heating_oil,2018,-0.8,Kausal estimate,estimate: per private home retrofitted to B2
+Action unit impacts,national_homes_b2,energy,MWh/a,residential,solid_fuels,2018,-0.3,Kausal estimate,estimate: per private home retrofitted to B2
+Action unit impacts,national_homes_b2,energy,MWh/a,residential,electricity,2018,1.5,Kausal estimate,estimate: per private home retrofitted to B2
+Action unit impacts,national_ev_share,energy,MWh/a,transport,petrol,2018,-741635,Kausal estimate,estimate: at 100% electric car-km: all car fuel replaced by electricity at 30% of the fuel energy
+Action unit impacts,national_ev_share,energy,MWh/a,transport,diesel,2018,-577048,Kausal estimate,estimate: at 100% electric car-km: all car fuel replaced by electricity at 30% of the fuel energy
+Action unit impacts,national_ev_share,energy,MWh/a,transport,electricity,2018,395605,Kausal estimate,estimate: at 100% electric car-km: all car fuel replaced by electricity at 30% of the fuel energy

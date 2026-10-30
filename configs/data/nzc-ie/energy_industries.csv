@@ -1,0 +1,2 @@
+Dataset,Metric,Quantity,Unit,lacap_sector,ie_energy_carrier,Year,Value,Source,Comment
+Energy industries,emissions,emissions,t/a,energy_industries,non_energy,2018,240000,DCC CAP 2024-2029; Kausal estimate,"estimate: Dublin Waste-to-Energy, Poolbeg only: 600,000 t waste/yr (CAP p.25) x ~0.4 t fossil CO2 per t waste. Gas-fired power stations in the city (Poolbeg, Ringsend) are NOT included; Codema data needed"
