@@ -1,0 +1,293 @@
+Dataset,Metric,Quantity,Unit,Action,Neighbourhood,Climate hazard,Vulnerability indicator,Source,2025,2026,2027,2028,2029,2030
+Neighbourhoods,Residents,population,cap,,Harbour Row,,,"Invented example data (adaptation risk view brief, 2026-10-30)",4200,,,,,
+Neighbourhoods,Residents,population,cap,,Old Town,,,"Invented example data (adaptation risk view brief, 2026-10-30)",5100,,,,,
+Neighbourhoods,Residents,population,cap,,Mill Quarter,,,"Invented example data (adaptation risk view brief, 2026-10-30)",3800,,,,,
+Neighbourhoods,Residents,population,cap,,Park Edge,,,"Invented example data (adaptation risk view brief, 2026-10-30)",2900,,,,,
+Neighbourhoods,Residents,population,cap,,Station Flats,,,"Invented example data (adaptation risk view brief, 2026-10-30)",6300,,,,,
+Neighbourhoods,Residents,population,cap,,Lakeside,,,"Invented example data (adaptation risk view brief, 2026-10-30)",3500,,,,,
+Neighbourhoods,Residents,population,cap,,Hill Top,,,"Invented example data (adaptation risk view brief, 2026-10-30)",2600,,,,,
+Neighbourhoods,Residents,population,cap,,East Terrace,,,"Invented example data (adaptation risk view brief, 2026-10-30)",4800,,,,,
+Neighbourhoods,Residents,population,cap,,Market Street,,,"Invented example data (adaptation risk view brief, 2026-10-30)",3300,,,,,
+Neighbourhoods,Residents,population,cap,,New Estate,,,"Invented example data (adaptation risk view brief, 2026-10-30)",5600,,,,,
+Neighbourhoods,Residents,population,cap,,Canal Side,,,"Invented example data (adaptation risk view brief, 2026-10-30)",4100,,,,,
+Neighbourhoods,Residents,population,cap,,South Fields,,,"Invented example data (adaptation risk view brief, 2026-10-30)",3000,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Harbour Row,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Harbour Row,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Harbour Row,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Harbour Row,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Harbour Row,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Harbour Row,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Old Town,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Old Town,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Old Town,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Old Town,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",1,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Old Town,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",1,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Old Town,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Mill Quarter,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Mill Quarter,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Mill Quarter,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Mill Quarter,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Mill Quarter,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Mill Quarter,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Park Edge,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Park Edge,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Park Edge,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",1,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Park Edge,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Park Edge,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",1,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Park Edge,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",1,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Station Flats,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Station Flats,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Station Flats,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Station Flats,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Station Flats,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Station Flats,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Lakeside,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Lakeside,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Lakeside,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Lakeside,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Lakeside,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Lakeside,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Hill Top,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Hill Top,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",1,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Hill Top,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",1,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Hill Top,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",1,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Hill Top,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",1,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Hill Top,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",1,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,East Terrace,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,East Terrace,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,East Terrace,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,East Terrace,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",1,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,East Terrace,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",1,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,East Terrace,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",1,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Market Street,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Market Street,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Market Street,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Market Street,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Market Street,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Market Street,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,New Estate,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,New Estate,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,New Estate,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,New Estate,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,New Estate,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,New Estate,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Canal Side,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Canal Side,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Canal Side,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,Canal Side,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,Canal Side,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,Canal Side,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",4,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,South Fields,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,South Fields,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,South Fields,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Hazard level,risk_level,dimensionless,,South Fields,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Risk levels,Exposure level,risk_level,dimensionless,,South Fields,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",2,,,,,
+Risk levels,Vulnerability level,risk_level,dimensionless,,South Fields,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",3,,,,,
+Vulnerability indicators,Share,fraction,%,,Harbour Row,,Residents over 75,"Invented example data (adaptation risk view brief, 2026-10-30)",9,,,,,
+Vulnerability indicators,Share,fraction,%,,Harbour Row,,Households on low income,"Invented example data (adaptation risk view brief, 2026-10-30)",14,,,,,
+Vulnerability indicators,Share,fraction,%,,Harbour Row,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",40,,,,,
+Vulnerability indicators,Share,fraction,%,,Harbour Row,,Homes without flood insurance,"Invented example data (adaptation risk view brief, 2026-10-30)",35,,,,,
+Vulnerability indicators,Share,fraction,%,,Harbour Row,,Households without a car,"Invented example data (adaptation risk view brief, 2026-10-30)",22,,,,,
+Vulnerability indicators,Share,fraction,%,,Harbour Row,,Residents with limited mobility,"Invented example data (adaptation risk view brief, 2026-10-30)",8,,,,,
+Vulnerability indicators,Share,fraction,%,,Old Town,,Residents over 75,"Invented example data (adaptation risk view brief, 2026-10-30)",24,,,,,
+Vulnerability indicators,Share,fraction,%,,Old Town,,Households on low income,"Invented example data (adaptation risk view brief, 2026-10-30)",31,,,,,
+Vulnerability indicators,Share,fraction,%,,Old Town,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",62,,,,,
+Vulnerability indicators,Share,fraction,%,,Old Town,,Homes without flood insurance,"Invented example data (adaptation risk view brief, 2026-10-30)",20,,,,,
+Vulnerability indicators,Share,fraction,%,,Old Town,,Households without a car,"Invented example data (adaptation risk view brief, 2026-10-30)",30,,,,,
+Vulnerability indicators,Share,fraction,%,,Old Town,,Residents with limited mobility,"Invented example data (adaptation risk view brief, 2026-10-30)",12,,,,,
+Vulnerability indicators,Share,fraction,%,,Mill Quarter,,Residents over 75,"Invented example data (adaptation risk view brief, 2026-10-30)",19,,,,,
+Vulnerability indicators,Share,fraction,%,,Mill Quarter,,Households on low income,"Invented example data (adaptation risk view brief, 2026-10-30)",38,,,,,
+Vulnerability indicators,Share,fraction,%,,Mill Quarter,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",70,,,,,
+Vulnerability indicators,Share,fraction,%,,Mill Quarter,,Homes without flood insurance,"Invented example data (adaptation risk view brief, 2026-10-30)",48,,,,,
+Vulnerability indicators,Share,fraction,%,,Mill Quarter,,Households without a car,"Invented example data (adaptation risk view brief, 2026-10-30)",34,,,,,
+Vulnerability indicators,Share,fraction,%,,Mill Quarter,,Residents with limited mobility,"Invented example data (adaptation risk view brief, 2026-10-30)",10,,,,,
+Vulnerability indicators,Share,fraction,%,,Park Edge,,Residents over 75,"Invented example data (adaptation risk view brief, 2026-10-30)",11,,,,,
+Vulnerability indicators,Share,fraction,%,,Park Edge,,Households on low income,"Invented example data (adaptation risk view brief, 2026-10-30)",9,,,,,
+Vulnerability indicators,Share,fraction,%,,Park Edge,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",20,,,,,
+Vulnerability indicators,Share,fraction,%,,Park Edge,,Homes without flood insurance,"Invented example data (adaptation risk view brief, 2026-10-30)",15,,,,,
+Vulnerability indicators,Share,fraction,%,,Park Edge,,Households without a car,"Invented example data (adaptation risk view brief, 2026-10-30)",10,,,,,
+Vulnerability indicators,Share,fraction,%,,Park Edge,,Residents with limited mobility,"Invented example data (adaptation risk view brief, 2026-10-30)",6,,,,,
+Vulnerability indicators,Share,fraction,%,,Station Flats,,Residents over 75,"Invented example data (adaptation risk view brief, 2026-10-30)",21,,,,,
+Vulnerability indicators,Share,fraction,%,,Station Flats,,Households on low income,"Invented example data (adaptation risk view brief, 2026-10-30)",42,,,,,
+Vulnerability indicators,Share,fraction,%,,Station Flats,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",74,,,,,
+Vulnerability indicators,Share,fraction,%,,Station Flats,,Homes without flood insurance,"Invented example data (adaptation risk view brief, 2026-10-30)",30,,,,,
+Vulnerability indicators,Share,fraction,%,,Station Flats,,Households without a car,"Invented example data (adaptation risk view brief, 2026-10-30)",36,,,,,
+Vulnerability indicators,Share,fraction,%,,Station Flats,,Residents with limited mobility,"Invented example data (adaptation risk view brief, 2026-10-30)",11,,,,,
+Vulnerability indicators,Share,fraction,%,,Lakeside,,Residents over 75,"Invented example data (adaptation risk view brief, 2026-10-30)",15,,,,,
+Vulnerability indicators,Share,fraction,%,,Lakeside,,Households on low income,"Invented example data (adaptation risk view brief, 2026-10-30)",12,,,,,
+Vulnerability indicators,Share,fraction,%,,Lakeside,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",33,,,,,
+Vulnerability indicators,Share,fraction,%,,Lakeside,,Homes without flood insurance,"Invented example data (adaptation risk view brief, 2026-10-30)",25,,,,,
+Vulnerability indicators,Share,fraction,%,,Lakeside,,Households without a car,"Invented example data (adaptation risk view brief, 2026-10-30)",14,,,,,
+Vulnerability indicators,Share,fraction,%,,Lakeside,,Residents with limited mobility,"Invented example data (adaptation risk view brief, 2026-10-30)",7,,,,,
+Vulnerability indicators,Share,fraction,%,,Hill Top,,Residents over 75,"Invented example data (adaptation risk view brief, 2026-10-30)",13,,,,,
+Vulnerability indicators,Share,fraction,%,,Hill Top,,Households on low income,"Invented example data (adaptation risk view brief, 2026-10-30)",8,,,,,
+Vulnerability indicators,Share,fraction,%,,Hill Top,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",18,,,,,
+Vulnerability indicators,Share,fraction,%,,Hill Top,,Homes without flood insurance,"Invented example data (adaptation risk view brief, 2026-10-30)",12,,,,,
+Vulnerability indicators,Share,fraction,%,,Hill Top,,Households without a car,"Invented example data (adaptation risk view brief, 2026-10-30)",8,,,,,
+Vulnerability indicators,Share,fraction,%,,Hill Top,,Residents with limited mobility,"Invented example data (adaptation risk view brief, 2026-10-30)",6,,,,,
+Vulnerability indicators,Share,fraction,%,,East Terrace,,Residents over 75,"Invented example data (adaptation risk view brief, 2026-10-30)",17,,,,,
+Vulnerability indicators,Share,fraction,%,,East Terrace,,Households on low income,"Invented example data (adaptation risk view brief, 2026-10-30)",29,,,,,
+Vulnerability indicators,Share,fraction,%,,East Terrace,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",58,,,,,
+Vulnerability indicators,Share,fraction,%,,East Terrace,,Homes without flood insurance,"Invented example data (adaptation risk view brief, 2026-10-30)",28,,,,,
+Vulnerability indicators,Share,fraction,%,,East Terrace,,Households without a car,"Invented example data (adaptation risk view brief, 2026-10-30)",25,,,,,
+Vulnerability indicators,Share,fraction,%,,East Terrace,,Residents with limited mobility,"Invented example data (adaptation risk view brief, 2026-10-30)",9,,,,,
+Vulnerability indicators,Share,fraction,%,,Market Street,,Residents over 75,"Invented example data (adaptation risk view brief, 2026-10-30)",18,,,,,
+Vulnerability indicators,Share,fraction,%,,Market Street,,Households on low income,"Invented example data (adaptation risk view brief, 2026-10-30)",27,,,,,
+Vulnerability indicators,Share,fraction,%,,Market Street,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",55,,,,,
+Vulnerability indicators,Share,fraction,%,,Market Street,,Homes without flood insurance,"Invented example data (adaptation risk view brief, 2026-10-30)",22,,,,,
+Vulnerability indicators,Share,fraction,%,,Market Street,,Households without a car,"Invented example data (adaptation risk view brief, 2026-10-30)",20,,,,,
+Vulnerability indicators,Share,fraction,%,,Market Street,,Residents with limited mobility,"Invented example data (adaptation risk view brief, 2026-10-30)",8,,,,,
+Vulnerability indicators,Share,fraction,%,,New Estate,,Residents over 75,"Invented example data (adaptation risk view brief, 2026-10-30)",8,,,,,
+Vulnerability indicators,Share,fraction,%,,New Estate,,Households on low income,"Invented example data (adaptation risk view brief, 2026-10-30)",16,,,,,
+Vulnerability indicators,Share,fraction,%,,New Estate,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",30,,,,,
+Vulnerability indicators,Share,fraction,%,,New Estate,,Homes without flood insurance,"Invented example data (adaptation risk view brief, 2026-10-30)",18,,,,,
+Vulnerability indicators,Share,fraction,%,,New Estate,,Households without a car,"Invented example data (adaptation risk view brief, 2026-10-30)",12,,,,,
+Vulnerability indicators,Share,fraction,%,,New Estate,,Residents with limited mobility,"Invented example data (adaptation risk view brief, 2026-10-30)",5,,,,,
+Vulnerability indicators,Share,fraction,%,,Canal Side,,Residents over 75,"Invented example data (adaptation risk view brief, 2026-10-30)",16,,,,,
+Vulnerability indicators,Share,fraction,%,,Canal Side,,Households on low income,"Invented example data (adaptation risk view brief, 2026-10-30)",26,,,,,
+Vulnerability indicators,Share,fraction,%,,Canal Side,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",52,,,,,
+Vulnerability indicators,Share,fraction,%,,Canal Side,,Homes without flood insurance,"Invented example data (adaptation risk view brief, 2026-10-30)",52,,,,,
+Vulnerability indicators,Share,fraction,%,,Canal Side,,Households without a car,"Invented example data (adaptation risk view brief, 2026-10-30)",38,,,,,
+Vulnerability indicators,Share,fraction,%,,Canal Side,,Residents with limited mobility,"Invented example data (adaptation risk view brief, 2026-10-30)",13,,,,,
+Vulnerability indicators,Share,fraction,%,,South Fields,,Residents over 75,"Invented example data (adaptation risk view brief, 2026-10-30)",12,,,,,
+Vulnerability indicators,Share,fraction,%,,South Fields,,Households on low income,"Invented example data (adaptation risk view brief, 2026-10-30)",18,,,,,
+Vulnerability indicators,Share,fraction,%,,South Fields,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",36,,,,,
+Vulnerability indicators,Share,fraction,%,,South Fields,,Homes without flood insurance,"Invented example data (adaptation risk view brief, 2026-10-30)",24,,,,,
+Vulnerability indicators,Share,fraction,%,,South Fields,,Households without a car,"Invented example data (adaptation risk view brief, 2026-10-30)",15,,,,,
+Vulnerability indicators,Share,fraction,%,,South Fields,,Residents with limited mobility,"Invented example data (adaptation risk view brief, 2026-10-30)",6,,,,,
+Cooling centre access,Walking time,duration,min,,Harbour Row,,,"Invented example data (adaptation risk view brief, 2026-10-30)",12,,,,,
+Cooling centre access,Walking time,duration,min,,Old Town,,,"Invented example data (adaptation risk view brief, 2026-10-30)",25,,,,,
+Cooling centre access,Walking time,duration,min,,Mill Quarter,,,"Invented example data (adaptation risk view brief, 2026-10-30)",28,,,,,
+Cooling centre access,Walking time,duration,min,,Park Edge,,,"Invented example data (adaptation risk view brief, 2026-10-30)",6,,,,,
+Cooling centre access,Walking time,duration,min,,Station Flats,,,"Invented example data (adaptation risk view brief, 2026-10-30)",31,,,,,
+Cooling centre access,Walking time,duration,min,,Lakeside,,,"Invented example data (adaptation risk view brief, 2026-10-30)",14,,,,,
+Cooling centre access,Walking time,duration,min,,Hill Top,,,"Invented example data (adaptation risk view brief, 2026-10-30)",9,,,,,
+Cooling centre access,Walking time,duration,min,,East Terrace,,,"Invented example data (adaptation risk view brief, 2026-10-30)",20,,,,,
+Cooling centre access,Walking time,duration,min,,Market Street,,,"Invented example data (adaptation risk view brief, 2026-10-30)",18,,,,,
+Cooling centre access,Walking time,duration,min,,New Estate,,,"Invented example data (adaptation risk view brief, 2026-10-30)",15,,,,,
+Cooling centre access,Walking time,duration,min,,Canal Side,,,"Invented example data (adaptation risk view brief, 2026-10-30)",19,,,,,
+Cooling centre access,Walking time,duration,min,,South Fields,,,"Invented example data (adaptation risk view brief, 2026-10-30)",17,,,,,
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Harbour Row,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Harbour Row,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Old Town,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1,1,1,1,1
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Old Town,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Mill Quarter,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,2,2,2,2,2
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Mill Quarter,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Park Edge,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Park Edge,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Station Flats,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Station Flats,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Lakeside,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Lakeside,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Hill Top,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Hill Top,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,East Terrace,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1,1,1,1,1
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,East Terrace,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Market Street,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Market Street,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,New Estate,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,New Estate,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Canal Side,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,Canal Side,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,South Fields,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1,1,1,1,1
+Adaptation actions,Level reduction,risk_level,dimensionless,Cooling centres,South Fields,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Investment cost,currency,MUSD/a,Cooling centres,,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1.2,,,,
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Harbour Row,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Harbour Row,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Old Town,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1,1,1,1,1
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Old Town,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Mill Quarter,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1,1,1,1,1
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Mill Quarter,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Park Edge,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Park Edge,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Station Flats,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1,1,1,1,1
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Station Flats,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Lakeside,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Lakeside,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Hill Top,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Hill Top,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,East Terrace,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1,1,1,1,1
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,East Terrace,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Market Street,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1,1,1,1,1
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Market Street,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,New Estate,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,New Estate,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Canal Side,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1,1,1,1,1
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,Canal Side,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,South Fields,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Check-in service for older residents,South Fields,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Investment cost,currency,MUSD/a,Check-in service for older residents,,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0.6,,,,
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Harbour Row,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Harbour Row,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Old Town,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1,1,1,1,1
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Old Town,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Mill Quarter,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1,1,1,1,1
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Mill Quarter,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Park Edge,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Park Edge,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Station Flats,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1,1,1,1,1
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Station Flats,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Lakeside,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Lakeside,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Hill Top,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Hill Top,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,East Terrace,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1,1,1,1,1
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,East Terrace,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Market Street,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,1,1,1,1,1
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Market Street,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,New Estate,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,New Estate,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Canal Side,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,Canal Side,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,South Fields,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Street trees,South Fields,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Investment cost,currency,MUSD/a,Street trees,,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,2.0,,,,
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Harbour Row,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Harbour Row,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Old Town,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Old Town,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Mill Quarter,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Mill Quarter,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,2,2,2,2,2
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Park Edge,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Park Edge,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Station Flats,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Station Flats,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Lakeside,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Lakeside,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Hill Top,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Hill Top,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,East Terrace,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,East Terrace,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Market Street,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Market Street,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,New Estate,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,New Estate,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Canal Side,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,Canal Side,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,2,2,2,2,2
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,South Fields,Heatwave,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Level reduction,risk_level,dimensionless,Flood barrier,South Fields,Flooding,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Investment cost,currency,MUSD/a,Flood barrier,,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,3.5,,,,
+Adaptation actions,Indicator change,fraction,%,Cooling centres,Harbour Row,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Walking time change,duration,min,Cooling centres,Harbour Row,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Indicator change,fraction,%,Cooling centres,Old Town,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",,-14,-14,-14,-14,-14
+Adaptation actions,Walking time change,duration,min,Cooling centres,Old Town,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,-16,-16,-16,-16,-16
+Adaptation actions,Indicator change,fraction,%,Cooling centres,Mill Quarter,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",,-25,-25,-25,-25,-25
+Adaptation actions,Walking time change,duration,min,Cooling centres,Mill Quarter,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,-20,-20,-20,-20,-20
+Adaptation actions,Indicator change,fraction,%,Cooling centres,Park Edge,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Walking time change,duration,min,Cooling centres,Park Edge,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Indicator change,fraction,%,Cooling centres,Station Flats,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Walking time change,duration,min,Cooling centres,Station Flats,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Indicator change,fraction,%,Cooling centres,Lakeside,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Walking time change,duration,min,Cooling centres,Lakeside,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Indicator change,fraction,%,Cooling centres,Hill Top,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Walking time change,duration,min,Cooling centres,Hill Top,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Indicator change,fraction,%,Cooling centres,East Terrace,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",,-18,-18,-18,-18,-18
+Adaptation actions,Walking time change,duration,min,Cooling centres,East Terrace,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,-10,-10,-10,-10,-10
+Adaptation actions,Indicator change,fraction,%,Cooling centres,Market Street,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Walking time change,duration,min,Cooling centres,Market Street,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Indicator change,fraction,%,Cooling centres,New Estate,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Walking time change,duration,min,Cooling centres,New Estate,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Indicator change,fraction,%,Cooling centres,Canal Side,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Walking time change,duration,min,Cooling centres,Canal Side,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,0,0,0,0,0
+Adaptation actions,Indicator change,fraction,%,Cooling centres,South Fields,,Homes without cooling,"Invented example data (adaptation risk view brief, 2026-10-30)",,-14,-14,-14,-14,-14
+Adaptation actions,Walking time change,duration,min,Cooling centres,South Fields,,,"Invented example data (adaptation risk view brief, 2026-10-30)",,-10,-10,-10,-10,-10

@@ -619,6 +619,16 @@ quality_of_data:
     sv: Datakvalitet
   icon: "📊"
 
+# An ordinal score on a fixed scale, such as 1 (low) to 4 (very high) in a climate risk
+# assessment. Dimensionless; averaging or summing levels is a modelling choice, not physics.
+risk_level:
+  label:
+    en: Risk level
+    fi: Riskitaso
+    de: Risikostufe
+    sv: Risknivå
+  icon: "⚠"
+
 # Listed in nodes.constants.KNOWN_QUANTITIES without an entry here, so a node declaring it passed
 # the old check and failed port validation. Stored in kelvin when it is a difference (warming).
 temperature:

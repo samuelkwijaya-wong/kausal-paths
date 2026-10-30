@@ -1012,6 +1012,13 @@ def analyze_formula_dimensions(  # noqa: C901, PLR0915
             return set(left)
         return set(left) | set(right)
 
+    def _is_scalar(node: ast.AST) -> bool:
+        # A literal number has no dimensions; at run time it applies to every row of the
+        # other operand (`max(1, x)`, `x >= 3`), so it never mismatches a frame's dimensions.
+        if isinstance(node, ast.UnaryOp):
+            return _is_scalar(node.operand)
+        return isinstance(node, ast.Constant)
+
     def _require_same(op: str, left: set[str] | None, right: set[str] | None) -> set[str] | None:
         if left is None or right is None:
             return left if left is not None else right
@@ -1037,6 +1044,8 @@ def analyze_formula_dimensions(  # noqa: C901, PLR0915
             left = _eval(node.left)
             right = _eval(node.right)
             if isinstance(node.op, (ast.Add, ast.Sub)):
+                if _is_scalar(node.left) or _is_scalar(node.right):
+                    return _merge_union(left, right)
                 return _require_same('+', left, right)
             if isinstance(node.op, (ast.Mult, ast.Div)):
                 return _merge_union(left, right)
@@ -1048,9 +1057,14 @@ def analyze_formula_dimensions(  # noqa: C901, PLR0915
             return _merge_union(left, right)
         if isinstance(node, ast.Compare):
             left = _eval(node.left)
+            left_is_scalar = _is_scalar(node.left)
             for comp in node.comparators:
                 right = _eval(comp)
-                left = _require_same('compare', left, right)
+                if left_is_scalar or _is_scalar(comp):
+                    left = _merge_union(left, right)
+                else:
+                    left = _require_same('compare', left, right)
+                left_is_scalar = left_is_scalar and _is_scalar(comp)
             return left
         if isinstance(node, ast.Call):
             func = node.func
@@ -1092,7 +1106,10 @@ def analyze_formula_dimensions(  # noqa: C901, PLR0915
                 if len(node.args) != 2:
                     analysis.warnings.append(f'{func_name}(a, b) requires two arguments.')
                 else:
-                    return _require_same(func_name, first, _eval(node.args[1]))
+                    second = _eval(node.args[1])
+                    if _is_scalar(node.args[0]) or _is_scalar(node.args[1]):
+                        return _merge_union(first, second)
+                    return _require_same(func_name, first, second)
                 return first
             if func_name in {'convert_gwp', 'zero_fill', 'from_year', 'output_with_scenario'} or func_name in passthrough:
                 return first

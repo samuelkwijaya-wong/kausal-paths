@@ -1,0 +1,543 @@
+# Demo instance for the climate adaptation risk view.
+#
+# EXAMPLE DATA ONLY: twelve invented neighbourhoods, invented risk levels, actions and
+# costs, taken from the "Adaptation risk view: build brief for Claude Code" (2026-10-30).
+# Nothing here is a real assessment result.
+#
+# The model follows the brief's placeholder rules:
+# - Each neighbourhood has a level from 1 (Low) to 4 (Very high) for hazard, exposure
+#   and vulnerability, separately for each climate hazard.
+# - An action lowers one component in named neighbourhoods by a set number of levels,
+#   never below 1.
+# - The two vulnerability actions help many of the same people, so for each area the
+#   larger of their two reductions counts, not the sum.
+# - A neighbourhood is high risk for a hazard when all three levels are 3 or more, and
+#   high risk overall when it is high risk for any hazard.
+# - An action's impact is the difference between the scenario with the action and the
+#   scenario without it, which is the "what if we cut one action" comparison.
+#
+# The data lives in configs/adaptation-demo/datasets.csv in the wide upload format.
+# Push it to the dataset repo with:
+#   python -m tools.upload_new_dataset -i configs/adaptation-demo/datasets.csv -o adaptation_demo -n adaptation-demo
+# src/nodes/tests/test_adaptation_demo.py computes the model from that CSV directly and
+# checks it against the test cases in the brief.
+
+id: adaptation-demo
+default_language: en
+supported_languages: []
+dataset_repo:
+  url: https://github.com/kausaltech/dvctest.git
+  dvc_remote: kausal-s3
+name: Climate adaptation risk view (example town)
+owner: Kausal Ltd
+theme_identifier: default
+target_year: 2030
+model_end_year: 2030
+reference_year: 2025
+minimum_historical_year: 2025
+maximum_historical_year: 2025
+emission_unit: kt/a
+features:
+  baseline_visible_in_graphs: true
+  show_explanations: true
+
+params:
+- id: municipality_name
+  value: Example town
+- id: extend_historical_values
+  value: true
+
+impact_overviews:
+- graph_type: simple_effect
+  effect_node: people_in_high_risk_areas
+  indicator_unit: cap
+  label: Change in people living in high-risk areas, per action
+- graph_type: simple_effect
+  effect_node: people_at_high_risk_by_hazard
+  indicator_unit: cap
+  label: Change in people at high risk, per action and hazard
+- graph_type: simple_effect
+  effect_node: adaptation_plan_costs
+  indicator_unit: MUSD
+  label: Cost of each action
+
+action_groups:
+- id: heat
+  name: Heatwave
+  color: '#E07A1F'
+- id: flood
+  name: Flooding
+  color: '#1F5F99'
+
+dimensions:
+- id: neighbourhood
+  label: Neighbourhood
+  categories:
+  - id: harbour
+    label: Harbour Row
+  - id: oldtown
+    label: Old Town
+  - id: mill
+    label: Mill Quarter
+  - id: parkedge
+    label: Park Edge
+  - id: station
+    label: Station Flats
+  - id: lakeside
+    label: Lakeside
+  - id: hilltop
+    label: Hill Top
+  - id: east
+    label: East Terrace
+  - id: market
+    label: Market Street
+  - id: newestate
+    label: New Estate
+  - id: canal
+    label: Canal Side
+  - id: south
+    label: South Fields
+
+- id: climate_hazard
+  label: Climate hazard
+  categories:
+  - id: heat
+    label: Heatwave
+  - id: flood
+    label: Flooding
+
+- id: vulnerability_indicator
+  label: Vulnerability indicator
+  categories:
+  - id: over75
+    label: Residents over 75
+  - id: low_income
+    label: Households on low income
+  - id: no_cooling
+    label: Homes without cooling
+  - id: no_flood_insurance
+    label: Homes without flood insurance
+  - id: no_car
+    label: Households without a car
+  - id: limited_mobility
+    label: Residents with limited mobility
+
+nodes:
+
+# ---------------------------------------------------------------------------
+# Input data
+# ---------------------------------------------------------------------------
+
+- id: residents
+  name: Residents
+  description: Residents per neighbourhood (example data).
+  type: simple.AdditiveNode
+  quantity: population
+  unit: cap
+  input_dimensions: [neighbourhood]
+  output_dimensions: [neighbourhood]
+  input_datasets:
+  - id: adaptation_demo/neighbourhoods
+    column: residents
+
+- id: hazard_level_without_actions
+  name: Hazard level without actions
+  description: How strong or likely the hazard is in each neighbourhood, from 1 (Low) to 4 (Very high).
+  type: simple.AdditiveNode
+  quantity: risk_level
+  unit: dimensionless
+  input_dimensions: [neighbourhood, climate_hazard]
+  output_dimensions: [neighbourhood, climate_hazard]
+  input_datasets:
+  - id: adaptation_demo/risk_levels
+    column: hazard_level
+
+- id: exposure_level
+  name: Exposure level
+  description: How many people and assets are in harm's way, from 1 (Low) to 4 (Very high).
+  type: simple.AdditiveNode
+  quantity: risk_level
+  unit: dimensionless
+  input_dimensions: [neighbourhood, climate_hazard]
+  output_dimensions: [neighbourhood, climate_hazard]
+  input_datasets:
+  - id: adaptation_demo/risk_levels
+    column: exposure_level
+
+- id: vulnerability_level_without_actions
+  name: Vulnerability level without actions
+  description: How hard the hazard hits the people exposed to it, from 1 (Low) to 4 (Very high).
+  type: simple.AdditiveNode
+  quantity: risk_level
+  unit: dimensionless
+  input_dimensions: [neighbourhood, climate_hazard]
+  output_dimensions: [neighbourhood, climate_hazard]
+  input_datasets:
+  - id: adaptation_demo/risk_levels
+    column: vulnerability_level
+
+- id: vulnerability_indicators
+  name: What makes people vulnerable
+  description: Shares of residents or households with each vulnerability factor. Shown next to the levels; they do not feed the level calculation.
+  type: simple.AdditiveNode
+  quantity: fraction
+  unit: '%'
+  input_dimensions: [neighbourhood, vulnerability_indicator]
+  output_dimensions: [neighbourhood, vulnerability_indicator]
+  input_datasets:
+  - id: adaptation_demo/vulnerability_indicators
+    column: share
+
+- id: walking_time_to_cooling_centre
+  name: Walk to nearest cooling centre
+  type: simple.AdditiveNode
+  quantity: duration
+  unit: min
+  input_dimensions: [neighbourhood]
+  output_dimensions: [neighbourhood]
+  input_datasets:
+  - id: adaptation_demo/cooling_centre_access
+    column: walking_time
+
+# ---------------------------------------------------------------------------
+# Action effects, gathered per risk component
+# ---------------------------------------------------------------------------
+
+- id: hazard_level_reduction
+  name: Hazard level reduction from actions
+  type: simple.AdditiveNode
+  quantity: risk_level
+  unit: dimensionless
+  input_dimensions: [neighbourhood, climate_hazard]
+  output_dimensions: [neighbourhood, climate_hazard]
+
+- id: vulnerability_reduction_from_cooling_centres
+  name: Vulnerability reduction from cooling centres
+  type: simple.AdditiveNode
+  quantity: risk_level
+  unit: dimensionless
+  input_dimensions: [neighbourhood, climate_hazard]
+  output_dimensions: [neighbourhood, climate_hazard]
+
+- id: vulnerability_reduction_from_checkin_service
+  name: Vulnerability reduction from the check-in service
+  type: simple.AdditiveNode
+  quantity: risk_level
+  unit: dimensionless
+  input_dimensions: [neighbourhood, climate_hazard]
+  output_dimensions: [neighbourhood, climate_hazard]
+
+# ---------------------------------------------------------------------------
+# Levels with the plan applied
+# ---------------------------------------------------------------------------
+
+- id: hazard_level
+  name: Hazard level
+  description: Hazard level after actions, never below 1 (Low).
+  type: formula.FormulaNode
+  quantity: risk_level
+  unit: dimensionless
+  input_dimensions: [neighbourhood, climate_hazard]
+  output_dimensions: [neighbourhood, climate_hazard]
+  input_nodes:
+  - id: hazard_level_without_actions
+    tags: [before]
+  - id: hazard_level_reduction
+    tags: [reduction]
+  params:
+    formula: max(1, before - reduction)
+
+- id: vulnerability_level
+  name: Vulnerability level
+  description: >-
+    Vulnerability level after actions, never below 1 (Low). Cooling centres and the
+    check-in service help many of the same people, so the larger of their two
+    reductions counts in each neighbourhood, not the sum.
+  type: formula.FormulaNode
+  quantity: risk_level
+  unit: dimensionless
+  input_dimensions: [neighbourhood, climate_hazard]
+  output_dimensions: [neighbourhood, climate_hazard]
+  input_nodes:
+  - id: vulnerability_level_without_actions
+    tags: [before]
+  - id: vulnerability_reduction_from_cooling_centres
+    tags: [cooling]
+  - id: vulnerability_reduction_from_checkin_service
+    tags: [checkin]
+  params:
+    formula: max(1, before - max(cooling, checkin))
+
+- id: overall_risk_level
+  name: Overall risk level
+  description: >-
+    Simple average of hazard, exposure and vulnerability, for illustration only. Always
+    show the three components next to it, because an average can hide a worst case.
+  type: formula.FormulaNode
+  quantity: risk_level
+  unit: dimensionless
+  input_dimensions: [neighbourhood, climate_hazard]
+  output_dimensions: [neighbourhood, climate_hazard]
+  input_nodes:
+  - id: hazard_level
+    tags: [h]
+  - id: exposure_level
+    tags: [e]
+  - id: vulnerability_level
+    tags: [v]
+  params:
+    formula: (h + e + v) / 3
+
+- id: high_risk_flag
+  name: High risk for each hazard
+  description: >-
+    1 when hazard, exposure and vulnerability are all 3 (High) or more, otherwise 0.
+    The minimum of three 0-or-1 comparisons is 1 only when all three hold.
+  type: formula.FormulaNode
+  quantity: risk_level
+  unit: dimensionless
+  input_dimensions: [neighbourhood, climate_hazard]
+  output_dimensions: [neighbourhood, climate_hazard]
+  input_nodes:
+  - id: hazard_level
+    tags: [h]
+  - id: exposure_level
+    tags: [e]
+  - id: vulnerability_level
+    tags: [v]
+  params:
+    formula: min(min(h >= 3, e >= 3), v >= 3)
+
+# ---------------------------------------------------------------------------
+# Outcomes
+# ---------------------------------------------------------------------------
+
+- id: people_at_high_risk_by_hazard
+  name: People at high risk, by hazard
+  description: Residents of neighbourhoods that are high risk for each hazard on its own.
+  type: formula.FormulaNode
+  quantity: population
+  unit: cap
+  input_dimensions: [climate_hazard]
+  output_dimensions: [climate_hazard]
+  is_outcome: true
+  input_nodes:
+  - id: high_risk_flag
+    tags: [flag]
+  - id: residents
+    tags: [people]
+  params:
+    formula: sum_dim(flag * people, neighbourhood)
+
+- id: people_in_high_risk_areas
+  name: People living in high-risk areas
+  description: >-
+    Residents of neighbourhoods that are high risk for heatwaves, flooding or both.
+    Each neighbourhood counts once, however many hazards make it high risk.
+  type: formula.FormulaNode
+  quantity: population
+  unit: cap
+  is_outcome: true
+  input_nodes:
+  - id: high_risk_flag
+    tags: [flag]
+  - id: residents
+    tags: [people]
+  params:
+    formula: sum_dim(max_dim(flag, climate_hazard) * people, neighbourhood)
+
+- id: adaptation_plan_costs
+  name: Cost of the adaptation plan
+  description: One-off investment cost of the actions in the plan (invented figures).
+  type: simple.AdditiveNode
+  quantity: currency
+  unit: MUSD/a
+  is_outcome: true
+
+actions:
+
+- id: cooling_centres
+  name: Cooling centres
+  description: Open cooling centres within walking distance of the most vulnerable residents.
+  group: heat
+  type: simple.AdditiveAction
+  quantity: risk_level
+  unit: dimensionless
+  input_dimensions: [neighbourhood, climate_hazard, vulnerability_indicator]
+  output_dimensions: [neighbourhood, climate_hazard, vulnerability_indicator]
+  params:
+    allow_null_categories: true
+  input_datasets:
+  - id: adaptation_demo/adaptation_actions
+    forecast_from: 2026
+    filters:
+    - column: action
+      value: Cooling centres
+  output_metrics:
+  - id: level_reduction
+    unit: dimensionless
+    quantity: risk_level
+  - id: investment_cost
+    unit: MUSD/a
+    quantity: currency
+  - id: indicator_change
+    unit: '%'
+    quantity: fraction
+  - id: walking_time_change
+    unit: min
+    quantity: duration
+  output_nodes:
+  - id: vulnerability_reduction_from_cooling_centres
+    metrics: [level_reduction]
+    from_dimensions:
+    - id: vulnerability_indicator
+      flatten: true
+  - id: adaptation_plan_costs
+    metrics: [investment_cost]
+    from_dimensions:
+    - id: neighbourhood
+      flatten: true
+    - id: climate_hazard
+      flatten: true
+    - id: vulnerability_indicator
+      flatten: true
+  - id: vulnerability_indicators
+    metrics: [indicator_change]
+    from_dimensions:
+    - id: climate_hazard
+      flatten: true
+  - id: walking_time_to_cooling_centre
+    metrics: [walking_time_change]
+    from_dimensions:
+    - id: climate_hazard
+      flatten: true
+    - id: vulnerability_indicator
+      flatten: true
+
+- id: checkin_service
+  name: Check-in service for older residents
+  description: Staff and volunteers call or visit older residents who live alone during heatwaves.
+  group: heat
+  type: simple.AdditiveAction
+  quantity: risk_level
+  unit: dimensionless
+  input_dimensions: [neighbourhood, climate_hazard]
+  output_dimensions: [neighbourhood, climate_hazard]
+  params:
+    allow_null_categories: true
+  input_datasets:
+  - id: adaptation_demo/adaptation_actions
+    forecast_from: 2026
+    filters:
+    - column: action
+      value: Check-in service for older residents
+    - column: vulnerability_indicator
+  output_metrics:
+  - id: level_reduction
+    unit: dimensionless
+    quantity: risk_level
+  - id: investment_cost
+    unit: MUSD/a
+    quantity: currency
+  output_nodes:
+  - id: vulnerability_reduction_from_checkin_service
+    metrics: [level_reduction]
+  - id: adaptation_plan_costs
+    metrics: [investment_cost]
+    from_dimensions:
+    - id: neighbourhood
+      flatten: true
+    - id: climate_hazard
+      flatten: true
+
+- id: street_trees
+  name: Street trees
+  description: Plant street trees for shade, which lowers the heat hazard in the densest streets.
+  group: heat
+  type: simple.AdditiveAction
+  quantity: risk_level
+  unit: dimensionless
+  input_dimensions: [neighbourhood, climate_hazard]
+  output_dimensions: [neighbourhood, climate_hazard]
+  params:
+    allow_null_categories: true
+  input_datasets:
+  - id: adaptation_demo/adaptation_actions
+    forecast_from: 2026
+    filters:
+    - column: action
+      value: Street trees
+    - column: vulnerability_indicator
+  output_metrics:
+  - id: level_reduction
+    unit: dimensionless
+    quantity: risk_level
+  - id: investment_cost
+    unit: MUSD/a
+    quantity: currency
+  output_nodes:
+  - id: hazard_level_reduction
+    metrics: [level_reduction]
+  - id: adaptation_plan_costs
+    metrics: [investment_cost]
+    from_dimensions:
+    - id: neighbourhood
+      flatten: true
+    - id: climate_hazard
+      flatten: true
+
+- id: flood_barrier
+  name: Flood barrier
+  description: Build a flood barrier along the canal, which lowers the flood hazard in Canal Side and Mill Quarter.
+  group: flood
+  type: simple.AdditiveAction
+  quantity: risk_level
+  unit: dimensionless
+  input_dimensions: [neighbourhood, climate_hazard]
+  output_dimensions: [neighbourhood, climate_hazard]
+  params:
+    allow_null_categories: true
+  input_datasets:
+  - id: adaptation_demo/adaptation_actions
+    forecast_from: 2026
+    filters:
+    - column: action
+      value: Flood barrier
+    - column: vulnerability_indicator
+  output_metrics:
+  - id: level_reduction
+    unit: dimensionless
+    quantity: risk_level
+  - id: investment_cost
+    unit: MUSD/a
+    quantity: currency
+  output_nodes:
+  - id: hazard_level_reduction
+    metrics: [level_reduction]
+  - id: adaptation_plan_costs
+    metrics: [investment_cost]
+    from_dimensions:
+    - id: neighbourhood
+      flatten: true
+    - id: climate_hazard
+      flatten: true
+
+pages:
+- id: home
+  name: Climate adaptation risk view
+  path: /
+  type: emission
+  outcome_node: people_in_high_risk_areas
+  lead_title: Where is climate risk highest, and what should we do about it?
+  lead_paragraph: >-
+    Example data only. Twelve invented neighbourhoods, with invented risk levels, actions
+    and costs, to show how an adaptation risk view could work in Kausal Paths.
+
+scenarios:
+- id: baseline
+  name: No actions
+
+- id: default
+  default: true
+  name: Adaptation plan
+  all_actions_enabled: true
