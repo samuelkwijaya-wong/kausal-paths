@@ -121,7 +121,7 @@ pages:
 - id: gpc
   name_en: GPC view (CDP-ICLEI)
   path: /gpc
-  type: outcome
+  type: emission
   outcome_node: gpc_emissions
   lead_title: GPC view for CDP-ICLEI reporting
   lead_paragraph: The same emissions arranged by GHG Protocol for Cities sectors and scopes.

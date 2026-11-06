@@ -59,6 +59,35 @@ could not be read here:
 **Replace these with Codema's Dublin City Baseline Emissions Inventory and the plan's Appendix 1 when
 available:** change the `Value` (and `Source`/`Comment`) in the rows; the model does not change.
 
+## How the inputs compare with standard NetZeroPlanner
+
+They are not the same. Standard NetZeroPlanner (`configs/nzc.yaml`, datasets `nzc/*`) works from
+**activity data** (floor area, passenger-km, vehicles, tonne-km, tonnes of waste) and many unit prices.
+Most of those are pre-filled with NetZeroCities defaults ("default" below). The Irish layer works from an
+**energy and emissions inventory**: energy use by sector and fuel, emission factors and direct emissions.
+This is the form Codema and SEAI publish Irish city data in.
+
+| Topic | Standard NetZeroPlanner (`nzc/*`) | Irish layer (`nzc-ie/*`) |
+|---|---|---|
+| How data is entered | Online form (Data collection and Future assumptions) | CSV files uploaded to the dataset repository |
+| Population | Population, growth rate | Population (census and projection) |
+| Buildings | Floor area by building type, heat energy use, heating fuel shares (local and district heating), renovation rate, energy use per m² | Energy use (MWh) by sector (residential, commercial, manufacturing) and fuel |
+| Electricity | Total consumption, local production mix, emission factor | Part of each sector's energy use; national grid emission factor path (SEAI) |
+| Passenger transport | Passenger-km by mode, number of cars and buses, electric vehicle share, occupancy | Transport fuel use (petrol, diesel, electricity) |
+| Freight | Tonne-km, number of trucks, load factor | Included in transport fuel, not separate |
+| Waste | Collected waste (t), recycling shares | Waste and wastewater emissions (t CO2e) |
+| Other sectors | One "other" emissions figure | Separate rows: industrial processes, F-gases, agriculture, land use |
+| Power and heat plants in the city (LACAP Step 1) | — | Shown separately, not added to the total |
+| Council's own emissions | — | By energy carrier (SEAI monitoring and reporting) |
+| Costs and co-benefits | Many unit prices (mostly default) | None yet |
+| Actions | Percentage settings per NZC action (modal shift, renovation rate, EV share, …) | Physical targets (homes retrofitted, MW of solar, LED lights, …) × impact per unit |
+| Reporting settings | — | Crosswalks to GPC sectors and to NZC sector "other" |
+
+In `configs/nzc-ie.yaml` the NetZeroCities view still reads NetZeroCities' own inputs. The Irish inventory
+feeds only NZC sector "other", so for now a Mission city would fill in both. A possible next step is to work
+out NZC's five measured totals (building heat, electricity, passenger-km, freight, other sectors) from the
+Irish inventory, so that the city enters its energy data once.
+
 ## Results with this data (computed 30 Oct 2026)
 
 | | 2018 | 2030 | 2050 |
@@ -68,7 +97,8 @@ available:** change the `Value` (and `Source`/`Comment`) in the rows; the model 
 | Goal (−51% by 2030, neutral by 2050) | 2,183 | 1,070 | 0 |
 
 GPC BASIC+ equals the LACAP total each year. GPC BASIC is lower by the industrial processes, F-gases,
-agriculture and land rows (76 kt in 2018).
+agriculture and land rows (76 kt in 2018). By GPC sector in 2018: I. Stationary energy 1,485, II. Transportation
+546, III. Waste 76, IV. Industrial processes and product use 72, V. Agriculture, forestry and land use 4 kt.
 
 ## Uploading
 

@@ -548,13 +548,104 @@ nodes:
     tags: [non_additive]
   - id: lacap_gpc_crosswalk
     tags: [non_additive]
-  output_nodes:
-  - id: gpc_emissions
+
+# One step per GPC sector, so that the GPC page shows a card for each sector.
+- id: gpc_i_stationary_energy_emissions
+  name_en: I. Stationary energy
+  color: '#4e79a7'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [gpc_sector, scope]
+  output_dimensions: [gpc_sector, scope]
+  input_nodes:
+  - id: gpc_emissions_by_lacap_row
     from_dimensions:
     - id: lacap_sector
       flatten: true
     - id: ie_energy_carrier
       flatten: true
+    - id: gpc_sector
+      categories: [i11, i12, i13, i21, i22, i23, i31, i32, i33, i41, i42, i43, i51, i52, i53, i61, i62, i63, i71, i81]
+  output_nodes: [gpc_emissions]
+
+- id: gpc_ii_transportation_emissions
+  name_en: II. Transportation
+  color: '#e15759'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [gpc_sector, scope]
+  output_dimensions: [gpc_sector, scope]
+  input_nodes:
+  - id: gpc_emissions_by_lacap_row
+    from_dimensions:
+    - id: lacap_sector
+      flatten: true
+    - id: ie_energy_carrier
+      flatten: true
+    - id: gpc_sector
+      categories: [ii11, ii12, ii13, ii21, ii22, ii23, ii31, ii32, ii33, ii41, ii42, ii43, ii51, ii52, ii53]
+  output_nodes: [gpc_emissions]
+
+- id: gpc_iii_waste_emissions
+  name_en: III. Waste
+  color: '#b07aa1'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [gpc_sector, scope]
+  output_dimensions: [gpc_sector, scope]
+  input_nodes:
+  - id: gpc_emissions_by_lacap_row
+    from_dimensions:
+    - id: lacap_sector
+      flatten: true
+    - id: ie_energy_carrier
+      flatten: true
+    - id: gpc_sector
+      categories: [iii11, iii12, iii21, iii22, iii31, iii32, iii41, iii42]
+  output_nodes: [gpc_emissions]
+
+- id: gpc_iv_ippu_emissions
+  name_en: IV. Industrial processes and product use
+  description_en: Counted in BASIC+ only.
+  color: '#9c755f'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [gpc_sector, scope]
+  output_dimensions: [gpc_sector, scope]
+  input_nodes:
+  - id: gpc_emissions_by_lacap_row
+    from_dimensions:
+    - id: lacap_sector
+      flatten: true
+    - id: ie_energy_carrier
+      flatten: true
+    - id: gpc_sector
+      categories: [iv1, iv2]
+  output_nodes: [gpc_emissions]
+
+- id: gpc_v_afolu_emissions
+  name_en: V. Agriculture, forestry and other land use
+  description_en: Counted in BASIC+ only.
+  color: '#59a14f'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [gpc_sector, scope]
+  output_dimensions: [gpc_sector, scope]
+  input_nodes:
+  - id: gpc_emissions_by_lacap_row
+    from_dimensions:
+    - id: lacap_sector
+      flatten: true
+    - id: ie_energy_carrier
+      flatten: true
+    - id: gpc_sector
+      categories: [v1, v2, v3]
+  output_nodes: [gpc_emissions]
 
 - id: gpc_emissions
   name_en: Dublin City emissions (GPC, BASIC+)
