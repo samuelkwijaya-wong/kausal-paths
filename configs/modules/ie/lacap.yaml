@@ -497,20 +497,103 @@ nodes:
     column: emissions
     forecast_from: 2019
 
-- id: council_operations_emissions
-  name_en: Council's own emissions
-  description_en: Emissions from Dublin City Council's buildings, public lighting and fleet (SEAI
-    monitoring and reporting). A part of the city total, never added to it. Plan pp.65–67.
+- id: council_operations_data
+  name_en: Council's own emissions, reported
+  description_en: Emissions from Dublin City Council's buildings, public lighting and fleet by energy
+    carrier (SEAI monitoring and reporting). Plan pp.65–67.
   type: generic.GenericNode
   quantity: emissions
   unit: t/a
-  is_outcome: true
   input_dimensions: [council_energy_carrier]
   output_dimensions: [council_energy_carrier]
   input_datasets:
   - id: nzc-ie/council_operations
     column: emissions
     forecast_from: 2022
+
+# One node per energy carrier, so the council page shows a card for each.
+- id: council_electricity_emissions
+  name_en: Electricity
+  color: '#4e79a7'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  input_nodes:
+  - id: council_operations_data
+    from_dimensions:
+    - id: council_energy_carrier
+      categories: [electricity]
+      flatten: true
+  output_nodes:
+  - id: council_operations_emissions
+    to_dimensions:
+    - id: council_energy_carrier
+      categories: [electricity]
+
+- id: council_natural_gas_emissions
+  name_en: Natural gas
+  color: '#f28e2b'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  input_nodes:
+  - id: council_operations_data
+    from_dimensions:
+    - id: council_energy_carrier
+      categories: [natural_gas]
+      flatten: true
+  output_nodes:
+  - id: council_operations_emissions
+    to_dimensions:
+    - id: council_energy_carrier
+      categories: [natural_gas]
+
+- id: council_diesel_emissions
+  name_en: Diesel (mostly fleet)
+  color: '#e15759'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  input_nodes:
+  - id: council_operations_data
+    from_dimensions:
+    - id: council_energy_carrier
+      categories: [diesel]
+      flatten: true
+  output_nodes:
+  - id: council_operations_emissions
+    to_dimensions:
+    - id: council_energy_carrier
+      categories: [diesel]
+
+- id: council_other_emissions
+  name_en: Other fuels
+  color: '#bab0ac'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  input_nodes:
+  - id: council_operations_data
+    from_dimensions:
+    - id: council_energy_carrier
+      categories: [other]
+      flatten: true
+  output_nodes:
+  - id: council_operations_emissions
+    to_dimensions:
+    - id: council_energy_carrier
+      categories: [other]
+
+- id: council_operations_emissions
+  name_en: Council's own emissions
+  description_en: Emissions from Dublin City Council's buildings, public lighting and fleet (SEAI
+    monitoring and reporting). A part of the city total, never added to it. Plan pp.65–67.
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  is_outcome: true
+  input_dimensions: [council_energy_carrier]
+  output_dimensions: [council_energy_carrier]
   goals:
   - label_en: Public sector goal (−51% by 2030 vs 2018)
     linear_interpolation: true

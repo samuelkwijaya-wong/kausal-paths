@@ -129,7 +129,7 @@ pages:
 - id: council
   name_en: Council's own emissions
   path: /council
-  type: outcome
+  type: emission
   outcome_node: council_operations_emissions
   lead_title: Dublin City Council's own operations
   lead_paragraph: Buildings, public lighting and fleet, from the council's SEAI monitoring and reporting.
