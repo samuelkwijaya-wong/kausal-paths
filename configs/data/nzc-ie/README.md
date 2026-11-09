@@ -88,6 +88,33 @@ feeds only NZC sector "other", so for now a Mission city would fill in both. A p
 out NZC's five measured totals (building heat, electricity, passenger-km, freight, other sectors) from the
 Irish inventory, so that the city enters its energy data once.
 
+### Pre-filling the NetZeroCities form
+
+For three fields the Irish inventory now gives suggested values. These are written into the city's
+NetZeroCities form as **default values**: the city sees them already filled in, confirms or corrects them,
+and a value the city types in always wins. Nothing the city entered is overwritten.
+
+| Form field | Suggested value from the Irish inventory | Dublin demo, 2018 |
+|---|---|---|
+| Building heat energy use (space heating and hot water) | Gas, heating oil, LPG and solid fuels used in homes and in commercial and public buildings. Leaves out electric heating and includes some cooking, so the city should check it. | 3,078 GWh |
+| Total electricity demand within city boundaries | Electricity used in all sectors | 1,991 GWh |
+| Emissions from other sectors | Industrial processes, F-gases, agriculture and land use | 76 kt CO2e |
+
+Passenger-km and freight tonne-km are not suggested: they count trips, which fuel data cannot give
+without guessing. They stay with the city or with NetZeroCities' usual defaults.
+
+The values come from the steps `nzc_suggested_*` in `configs/modules/ie/lacap.yaml`. Someone with access to the
+NetZeroCities form database writes them with:
+
+```bash
+python manage.py prefill_nzc_from_lacap --instance <city instance> --lacap-config configs/ie-lacap-dublin.yaml --building-heat <form field id> --electricity <form field id> --other-sectors <form field id>
+```
+
+This is a dry run that only reports what would change; add `--apply` to write. The form field ids are the
+measure-template UUIDs of the NetZeroCities framework. The LACAP model must be able to load its data, so the
+`nzc-ie/*` datasets have to be uploaded first. `refresh_measure_defaults` resets default values, so run the
+pre-fill again after it.
+
 ## Results with this data (computed 30 Oct 2026)
 
 | | 2018 | 2030 | 2050 |

@@ -834,6 +834,65 @@ nodes:
   quantity: number
   unit: dimensionless
 
+# ---------------------------------------------------------------------------
+# Suggested values for the NetZeroCities data collection form. A Mission city
+# that also keeps a LACAP inventory gets these as pre-filled default values
+# (python manage.py prefill_nzc_from_lacap); the city confirms or corrects them,
+# and a value the city enters always wins. Passenger-km and freight tonne-km are
+# not suggested: they count trips, which the fuel-based inventory cannot give.
+
+- id: nzc_suggested_building_heat
+  name_en: 'NetZeroCities form: suggested building heat energy use'
+  description_en: Fuel used in homes and in commercial and public buildings (natural gas, heating oil,
+    LPG and solid fuels). A starting point for the form's space heating and hot water total. It leaves
+    out electric heating and includes some cooking, so the city should check it.
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: GWh/a
+  input_dimensions: [ie_energy_carrier]
+  output_dimensions: [ie_energy_carrier]
+  input_nodes:
+  - id: ie_energy_consumption
+    from_dimensions:
+    - id: lacap_sector
+      categories: [residential, commercial]
+      flatten: true
+    - id: ie_energy_carrier
+      categories: [natural_gas, heating_oil, lpg, solid_fuels]
+
+- id: nzc_suggested_electricity
+  name_en: 'NetZeroCities form: suggested electricity consumption'
+  description_en: Electricity used in the city in all LACAP sectors, for the form's total electricity
+    demand within city boundaries.
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: GWh/a
+  input_dimensions: [lacap_sector]
+  output_dimensions: [lacap_sector]
+  input_nodes:
+  - id: ie_energy_consumption
+    from_dimensions:
+    - id: ie_energy_carrier
+      categories: [electricity]
+      flatten: true
+
+- id: nzc_suggested_other_sectors
+  name_en: 'NetZeroCities form: suggested emissions from other sectors'
+  description_en: Industrial processes, F-gases, agriculture and land use from the LACAP inventory.
+    These are the rows NetZeroCities does not model itself (the same rows as in the LACAP-to-NZC crosswalk).
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: kt/a
+  input_dimensions: [lacap_sector]
+  output_dimensions: [lacap_sector]
+  input_nodes:
+  - id: ie_direct_emissions
+    from_dimensions:
+    - id: lacap_sector
+      categories: [industrial_processes, f_gases, agriculture, lulucf]
+    - id: ie_energy_carrier
+      flatten: true
+
 actions:
 
 - id: r1_social_housing_retrofit
