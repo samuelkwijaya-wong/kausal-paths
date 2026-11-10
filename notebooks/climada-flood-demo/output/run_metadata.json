@@ -1,0 +1,11 @@
+{
+  "climada_version": "6.2.0",
+  "source": "synthetic",
+  "seed": 42,
+  "events": 1000,
+  "years": [
+    2025,
+    2050
+  ],
+  "inputs_are_invented": true
+}

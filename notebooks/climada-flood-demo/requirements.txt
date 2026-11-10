@@ -1,0 +1,5 @@
+# Separate environment for run_climada_flood.py (Python 3.11-3.13).
+# Do not add these to the Kausal Paths environment.
+# The GDAL Python package must match the system library; see README.md.
+climada==6.2.0
+pyyaml

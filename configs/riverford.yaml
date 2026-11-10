@@ -1,0 +1,354 @@
+# Riverford: a demo climate-adaptation model for river flooding.
+#
+# Riverford is a made-up city. Its river, flood events and building values are
+# invented. The expected flood damage, and how much each measure reduces it,
+# were computed with CLIMADA (https://github.com/CLIMADA-project/climada_python)
+# by notebooks/climada-flood-demo/run_climada_flood.py, which also writes the
+# data in modules/riverford/climada_results.yaml. See the README in that folder.
+#
+# How the model works: flood damage = damage without measures, multiplied for
+# each switched-on measure by the share of damage that measure leaves behind.
+# CLIMADA evaluates each measure on its own; multiplying the shares is this
+# model's approximation for several measures at once.
+
+id: riverford
+default_language: en
+supported_languages: []
+name: Riverford flood adaptation (CLIMADA demo)
+owner: Kausal demo
+theme_identifier: default
+target_year: 2050
+model_end_year: 2050
+reference_year: 2025
+minimum_historical_year: 2020
+maximum_historical_year: 2025
+
+features:
+  baseline_visible_in_graphs: true
+  show_significant_digits: 3
+
+params:
+- id: municipality_name
+  value: Riverford
+- id: action_impact_from_baseline
+  value: true
+- id: discount_rate
+  value: 3.0
+  unit: '%'
+  min_value: 0.0
+  max_value: 7.0
+  is_visible: true
+  is_customizable: true
+
+include:
+- file: modules/riverford/climada_results.yaml
+  node_group: CLIMADA results
+  allow_override: false
+
+action_groups:
+- id: structural
+  name: Structural protection
+  color: '#1f78b4'
+- id: property
+  name: Property and land use
+  color: '#33a02c'
+
+impact_overviews:
+- graph_type: cost_benefit
+  effect_node: discounted_total_costs
+  indicator_unit: MEUR
+  outcome_dimension: cost_type
+  label: Cost-benefit of flood adaptation measures
+- graph_type: wedge_diagram
+  effect_node: flood_damage
+  indicator_unit: MEUR/a
+  label: How the measures reduce expected flood damage
+- graph_type: return_on_investment
+  cost_node: discounted_adaptation_costs
+  effect_node: discounted_flood_damage
+  indicator_unit: '%'
+  label: Avoided damage per euro spent
+- graph_type: stacked_raw_impact
+  effect_node: adaptation_costs
+  indicator_unit: MEUR/a
+  label: Yearly spending on measures
+
+dimensions:
+- id: district
+  label: District
+  categories:
+  - id: riverside
+    label: Riverside
+  - id: old_town
+    label: Old Town
+  - id: harbour
+    label: Harbour
+- id: cost_type
+  label: Cost type
+  categories:
+  - id: investment
+    label: Investment
+  - id: maintenance
+    label: Maintenance
+  - id: flood_damage
+    label: Flood damage
+
+nodes:
+- id: flood_damage
+  name: Expected annual flood damage
+  description: >-
+    Average yearly damage from river flooding, taking account of the adaptation
+    measures that are switched on. It is the damage without measures multiplied,
+    for each active measure, by the share of damage that measure leaves behind.
+    Riverford is an invented city; the figures were computed with CLIMADA and are
+    for illustration only.
+  type: formula.FormulaNode
+  quantity: currency
+  unit: MEUR/a
+  color: '#1f78b4'
+  is_outcome: true
+  input_dimensions: [district]
+  output_dimensions: [district]
+  input_nodes:
+  - id: baseline_flood_damage
+    tags: [baseline]
+  - id: river_dike_reduction
+    tags: [river_dike_red]
+  - id: floodproofing_reduction
+    tags: [floodproofing_red]
+  - id: floodplain_restoration_reduction
+    tags: [floodplain_restoration_red]
+  - id: relocation_reduction
+    tags: [relocation_red]
+  output_nodes:
+  - id: total_costs
+    from_dimensions:
+    - id: district
+      flatten: true
+    to_dimensions:
+    - id: cost_type
+      categories: [flood_damage]
+  params:
+  - id: formula
+    value: >-
+      baseline * complement(river_dike_on * river_dike_red) * complement(floodproofing_on * floodproofing_red)
+      * complement(floodplain_restoration_on * floodplain_restoration_red) * complement(relocation_on * relocation_red)
+
+- id: investment_costs
+  name: Investment in adaptation measures
+  description: Construction spending on the measures that are switched on.
+  type: formula.FormulaNode
+  quantity: currency
+  unit: MEUR/a
+  output_nodes:
+  - id: total_costs
+    to_dimensions:
+    - id: cost_type
+      categories: [investment]
+  params:
+  - id: formula
+    value: >-
+      river_dike_on * river_dike_cost + floodproofing_on * floodproofing_cost
+      + floodplain_restoration_on * floodplain_restoration_cost + relocation_on * relocation_cost
+
+- id: maintenance_costs
+  name: Maintenance of adaptation measures
+  description: Yearly upkeep of the measures that are switched on, once they are in operation.
+  type: formula.FormulaNode
+  quantity: currency
+  unit: MEUR/a
+  output_nodes:
+  - id: total_costs
+    to_dimensions:
+    - id: cost_type
+      categories: [maintenance]
+  params:
+  - id: formula
+    value: >-
+      river_dike_on * river_dike_cost + floodproofing_on * floodproofing_cost
+      + floodplain_restoration_on * floodplain_restoration_cost + relocation_on * relocation_cost
+
+- id: total_costs
+  name: Flood damage and adaptation costs
+  description: Expected flood damage plus spending on adaptation measures, each year.
+  type: simple.AdditiveNode
+  quantity: currency
+  unit: MEUR/a
+  input_dimensions: [cost_type]
+  output_dimensions: [cost_type]
+
+- id: discounted_total_costs
+  name: Discounted flood damage and adaptation costs
+  description: The same costs with later years counted for less, using the discount rate setting.
+  type: costs.ExponentialNode
+  quantity: currency
+  unit: MEUR/a
+  input_dimensions: [cost_type]
+  output_dimensions: [cost_type]
+  input_nodes:
+  - id: total_costs
+  params:
+  - id: annual_change
+    ref: discount_rate
+  - id: is_decreasing_rate
+    value: true
+
+- id: adaptation_costs
+  name: Spending on adaptation measures
+  type: simple.AdditiveNode
+  quantity: currency
+  unit: MEUR/a
+  input_dimensions: [cost_type]
+  output_dimensions: [cost_type]
+  input_nodes:
+  - id: total_costs
+    from_dimensions:
+    - id: cost_type
+      categories: [investment, maintenance]
+
+- id: discounted_adaptation_costs
+  name: Discounted spending on adaptation measures
+  type: simple.AdditiveNode
+  quantity: currency
+  unit: MEUR/a
+  input_nodes:
+  - id: discounted_total_costs
+    from_dimensions:
+    - id: cost_type
+      categories: [investment, maintenance]
+      flatten: true
+
+- id: discounted_flood_damage
+  name: Discounted expected flood damage
+  type: simple.AdditiveNode
+  quantity: currency
+  unit: MEUR/a
+  input_nodes:
+  - id: discounted_total_costs
+    from_dimensions:
+    - id: cost_type
+      categories: [flood_damage]
+      flatten: true
+
+actions:
+- id: river_dike
+  name: Raise the river dike
+  description: >-
+    Raises the dike along Riverside and the Harbour so that floods up to roughly
+    the 1-in-50-year event no longer cause damage there. Investment of EUR 40
+    million over 2027-2029, then EUR 0.4 million a year for upkeep. In effect
+    from 2030.
+  type: simple.ValueAction
+  quantity: fraction
+  unit: dimensionless
+  group: structural
+  output_nodes:
+  - id: flood_damage
+    tags: [river_dike_on]
+    to_dimensions: []
+  - id: investment_costs
+    tags: [river_dike_on]
+  - id: maintenance_costs
+    tags: [river_dike_on]
+  params:
+  - id: constant
+    value: 1
+    unit: dimensionless
+
+- id: floodproofing
+  name: Flood-proof properties
+  description: >-
+    Property-level protection (raised electrics, flood doors, water-resistant
+    ground floors) in Riverside and the Old Town, cutting damage by a quarter
+    when a building is flooded. Investment of EUR 15 million over 2026-2030,
+    then EUR 0.1 million a year. In effect from 2031.
+  type: simple.ValueAction
+  quantity: fraction
+  unit: dimensionless
+  group: property
+  output_nodes:
+  - id: flood_damage
+    tags: [floodproofing_on]
+    to_dimensions: []
+  - id: investment_costs
+    tags: [floodproofing_on]
+  - id: maintenance_costs
+    tags: [floodproofing_on]
+  params:
+  - id: constant
+    value: 1
+    unit: dimensionless
+
+- id: floodplain_restoration
+  name: Restore the upstream floodplain
+  description: >-
+    Gives the river room to spread upstream of the city, lowering flood depths
+    by about 0.3 m everywhere in Riverford. Investment of EUR 25 million over
+    2026-2028, then EUR 0.2 million a year. In effect from 2029.
+  type: simple.ValueAction
+  quantity: fraction
+  unit: dimensionless
+  group: structural
+  output_nodes:
+  - id: flood_damage
+    tags: [floodplain_restoration_on]
+    to_dimensions: []
+  - id: investment_costs
+    tags: [floodplain_restoration_on]
+  - id: maintenance_costs
+    tags: [floodplain_restoration_on]
+  params:
+  - id: constant
+    value: 1
+    unit: dimensionless
+
+- id: relocation
+  name: Relocate the lowest riverside strip
+  description: >-
+    Moves homes out of the two lowest rows of Riverside to high ground in the
+    Old Town, where floods do not reach. Investment of EUR 60 million over
+    2028-2032, with no upkeep. In effect from 2033.
+  type: simple.ValueAction
+  quantity: fraction
+  unit: dimensionless
+  group: property
+  output_nodes:
+  - id: flood_damage
+    tags: [relocation_on]
+    to_dimensions: []
+  - id: investment_costs
+    tags: [relocation_on]
+  - id: maintenance_costs
+    tags: [relocation_on]
+  params:
+  - id: constant
+    value: 1
+    unit: dimensionless
+
+pages:
+- id: home
+  name: Flood risk in Riverford
+  path: /
+  type: emission
+  outcome_node: flood_damage
+  lead_title: Flood adaptation demo
+  lead_paragraph: >-
+    Expected yearly river-flood damage in Riverford, a made-up city, with and
+    without adaptation measures. The city, its floods and its building values
+    are invented; the damage figures were computed with CLIMADA and are for
+    illustration only.
+
+scenarios:
+- id: baseline
+  name: No adaptation measures
+- id: default
+  default: true
+  name: All adaptation measures
+  all_actions_enabled: true
+- id: structural_only
+  name: Structural protection only
+  params:
+  - id: river_dike.enabled
+    value: true
+  - id: floodplain_restoration.enabled
+    value: true

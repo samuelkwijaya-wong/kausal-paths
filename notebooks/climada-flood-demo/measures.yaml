@@ -1,0 +1,61 @@
+# Adaptation measures for the Riverford flood demo.
+#
+# Everything here is invented for illustration. Edit the numbers and re-run
+# run_climada_flood.py to regenerate the tables and the Kausal Paths data file.
+#
+# climada:        settings passed to CLIMADA's Measure class
+# investment_meur: total investment, spread evenly over the construction years
+# maintenance_meur_per_year: yearly upkeep once the measure is in operation
+# The measure takes effect the year after construction ends.
+
+measures:
+- id: river_dike
+  name: Raise the river dike
+  group: structural
+  description: >-
+    Raises the dike along Riverside and the Harbour so that floods up to
+    roughly the 1-in-50-year event no longer cause damage there.
+  climada:
+    hazard_freq_cutoff: 0.02      # 1/50 per year
+    exp_region_id: [riverside, harbour]
+  investment_meur: 40
+  construction_years: [2027, 2029]
+  maintenance_meur_per_year: 0.4
+
+- id: floodproofing
+  name: Flood-proof properties
+  group: property
+  description: >-
+    Property-level protection (raised electrics, flood doors, water-resistant
+    ground floors) in Riverside and the Old Town. Cuts damage by a quarter
+    when a building is flooded.
+  climada:
+    mdd_impact: [0.75, 0]         # damage degree x 0.75
+    exp_region_id: [riverside, old_town]
+  investment_meur: 15
+  construction_years: [2026, 2030]
+  maintenance_meur_per_year: 0.1
+
+- id: floodplain_restoration
+  name: Restore the upstream floodplain
+  group: structural
+  description: >-
+    Gives the river room to spread upstream of the city, lowering flood
+    depths by about 0.3 m everywhere in Riverford.
+  climada:
+    hazard_inten_imp: [1, -0.3]   # flood depth minus 0.3 m
+  investment_meur: 25
+  construction_years: [2026, 2028]
+  maintenance_meur_per_year: 0.2
+
+- id: relocation
+  name: Relocate the lowest riverside strip
+  group: property
+  description: >-
+    Moves homes out of the two lowest rows of Riverside to high ground in
+    the Old Town, where floods do not reach.
+  climada:
+    relocate_rows: [0, 1]         # handled by the script via exposures_set
+  investment_meur: 60
+  construction_years: [2028, 2032]
+  maintenance_meur_per_year: 0
