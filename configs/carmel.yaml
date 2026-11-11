@@ -1,0 +1,914 @@
+# City of Carmel, Indiana -- greenhouse gas inventory built on EPA's Local Greenhouse
+# Gas Inventory Tool (LGGIT), version 2025.1.
+#
+# The model follows the LGGIT Community Module source by source and adds the
+# Government Operations Module as a second, separate result. Every emission figure
+# is activity data multiplied by the factor LGGIT holds on its Factors sheet, so a
+# result here can be checked against the EPA workbook line by line.
+#
+# STATUS OF THE DATA
+#   No city-supplied activity data is loaded yet. Each activity dataset holds a
+#   public placeholder whose comment starts with "ESTIMATE:" and says how it was
+#   derived and what should replace it. The producer script and CSVs are in
+#   data/carmel/ (create_carmel_csv.py); the factor datasets hold LGGIT's own values.
+#
+# TO UPDATE OR ADD AN INVENTORY YEAR
+#   1. Edit or append the year's column in data/carmel/*.csv and re-upload.
+#   2. For a new year, bump `maximum_historical_year` and every `forecast_from`.
+#   Years after the inventory year are the last inventory held flat; there is no
+#   projection in this model.
+#
+# RELATION TO THE 2015 AND 2018 INVENTORIES
+#   Those were prepared in ICLEI ClearPath on a different method and are not
+#   reproduced or harmonised here. Results are not comparable with them.
+#
+# WHAT IS NOT MODELLED YET
+#   Market-based electricity (needs utility-specific factors), in-boundary landfills
+#   (Carmel has none), and the fertiliser and imported-water calculations, which are
+#   carried as directly reported emissions until there is data to calculate them from.
+#
+# NODE CLASSES
+#   simple.AdditiveNode2 holds data and sums; simple.MultiplicativeNode2 multiplies
+#   activity by factors. GenericNode is deliberately not used: the model editor shows
+#   the class, and the specific classes say what a node does.
+
+id: carmel
+default_language: en
+supported_languages: []
+dataset_repo:
+  url: https://github.com/kausaltech/dvctest.git
+  # Placeholder: the Carmel datasets are not uploaded yet. Set this to the dvctest
+  # commit that the upload of data/carmel/*.csv produces.
+  commit: e1ea98505efa59ce6ccc1c74a2efc7203cc396df
+  dvc_remote: kausal-s3
+name: Carmel Greenhouse Gas Inventory
+owner_en: City of Carmel
+theme_identifier: default
+
+reference_year: 2024
+minimum_historical_year: 2024
+maximum_historical_year: 2024
+emission_forecast_from: 2025
+target_year: 2030
+model_end_year: 2030
+
+emission_unit: t_co2e/a
+
+emission_sectors:
+- id: net_emissions
+  name: Community emissions (net)
+  description: >
+    The LGGIT Community Module total. Net, so it includes the carbon taken up by
+    urban trees as a negative figure; LGGIT's gross total is this figure without
+    the urban forestry line.
+  is_outcome: true
+
+- id: stationary_combustion_emissions
+  name: Stationary combustion (Scope 1)
+  part_of: net_emissions
+
+- id: mobile_combustion_emissions
+  name: Mobile combustion (Scope 1)
+  part_of: net_emissions
+
+- id: electricity_emissions
+  name: Electricity, location-based (Scope 2)
+  part_of: net_emissions
+
+- id: wastewater_emissions
+  name: Wastewater treatment (Scope 1)
+  part_of: net_emissions
+
+- id: waste_generation_emissions
+  name: Waste generation (Scope 3)
+  part_of: net_emissions
+
+- id: imported_water_emissions
+  name: Imported water (Scope 3)
+  part_of: net_emissions
+
+- id: agriculture_emissions
+  name: Agriculture and land management (Scope 3)
+  part_of: net_emissions
+
+- id: additional_emissions
+  name: Additional emission sources
+  part_of: net_emissions
+
+- id: urban_forestry_emissions
+  name: Urban forestry (Scope 1, removal)
+  part_of: net_emissions
+
+# City operations are a subset of the community inventory, so they have their own
+# total and are never added to the community figure.
+- id: city_operations_emissions
+  name: City operations emissions
+  description: >
+    The LGGIT Government Operations Module total: emissions from the city
+    government's own buildings, street lighting, water and wastewater facilities,
+    vehicle fleet and employee commuting. These are already inside the community
+    total and must not be added to it.
+  is_outcome: true
+
+- id: city_electricity_emissions
+  name: City operations electricity (Scope 2)
+  part_of: city_operations_emissions
+
+- id: city_stationary_combustion_emissions
+  name: City operations stationary combustion (Scope 1)
+  part_of: city_operations_emissions
+
+- id: city_fleet_emissions
+  name: City vehicle fleet (Scope 1)
+  part_of: city_operations_emissions
+
+- id: city_commute_emissions
+  name: Employee commute (Scope 3)
+  part_of: city_operations_emissions
+
+pages:
+- id: home
+  name: Carmel greenhouse gas inventory
+  path: /
+  type: emission
+  outcome_node: net_emissions
+  lead_title: Carmel community greenhouse gas emissions
+  lead_paragraph: >
+    Community-scale greenhouse gas inventory for the City of Carmel, Indiana,
+    following the US EPA Local Greenhouse Gas Inventory Tool (LGGIT). Draft: the
+    figures shown are public estimates that stand in for local data, and each one
+    is marked as an estimate in its dataset.
+
+- id: city_operations
+  name: City operations
+  path: /city-operations
+  type: emission
+  outcome_node: city_operations_emissions
+  lead_title: Emissions from city operations
+  lead_paragraph: >
+    Emissions from the city government's own operations, following the LGGIT
+    Government Operations Module. Draft: the figures are the city's published
+    2018 activity data carried forward until current records are entered.
+
+scenarios:
+- id: baseline
+  name: Inventory
+  default: true
+
+dimensions:
+
+# LGGIT's fixed community sectors. Government operations totals belong in
+# Commercial/Institutional when they are entered in the community module.
+- id: sector
+  label_en: Sector
+  categories:
+  - id: residential
+    order: 1
+    label_en: Residential
+  - id: commercial_institutional
+    order: 2
+    label_en: Commercial/Institutional
+    aliases: [Commercial, Commercial / Institutional]
+  - id: industrial
+    order: 3
+    label_en: Industrial
+  - id: energy_generation
+    order: 4
+    label_en: Energy Generation
+
+- id: energy_carrier
+  label_en: Fuel
+  categories:
+  - id: gasoline
+    order: 1
+    label_en: Gasoline
+  - id: diesel
+    order: 2
+    label_en: Diesel
+
+- id: vehicle_type
+  label_en: Vehicle type
+  categories:
+  - id: passenger_car
+    order: 1
+    label_en: Passenger Car
+  - id: light_truck
+    order: 2
+    label_en: Light Truck (Vans, Pickup Trucks, SUVs)
+    aliases: [Light Truck]
+  - id: heavy_duty_vehicle
+    order: 3
+    label_en: Heavy-Duty Vehicle
+
+- id: greenhouse_gas
+  label_en: Greenhouse gas
+  categories:
+  - id: co2
+    order: 1
+    label_en: CO2
+  - id: ch4
+    order: 2
+    label_en: CH4
+  - id: n2o
+    order: 3
+    label_en: N2O
+
+- id: wastewater_process
+  label_en: Wastewater emission process
+  categories:
+  - id: treatment_process
+    order: 1
+    label_en: Treatment process
+  - id: effluent_discharge
+    order: 2
+    label_en: Effluent discharge
+
+# LGGIT sources that are entered as a finished emission figure rather than
+# calculated in this model.
+- id: lggit_source
+  label_en: LGGIT source
+  categories:
+  - id: imported_water
+    order: 1
+    label_en: Imported water
+  - id: agriculture_land_management
+    order: 2
+    label_en: Agriculture and land management
+  - id: additional_sources
+    order: 3
+    label_en: Additional emission sources
+
+- id: city_department
+  label_en: City operations area
+  categories:
+  - id: buildings_facilities
+    order: 1
+    label_en: Buildings and facilities
+  - id: street_lights_signals
+    order: 2
+    label_en: Street lights and traffic signals
+  - id: water_wastewater_facilities
+    order: 3
+    label_en: Water and wastewater facilities
+
+nodes:
+
+# ===========================================================================
+# Shared factors (LGGIT Factors sheet)
+# ===========================================================================
+
+- id: global_warming_potential
+  name: Global warming potential
+  description: >
+    100-year global warming potentials from the IPCC Fifth Assessment Report:
+    1 for CO2, 28 for CH4, 265 for N2O. These are the only set built into LGGIT.
+    Every gas in the model is converted to CO2-equivalent here.
+  type: simple.AdditiveNode2
+  quantity: ratio
+  unit: t_co2e/t
+  input_dimensions: [greenhouse_gas]
+  output_dimensions: [greenhouse_gas]
+  input_datasets:
+  - id: carmel/global_warming_potentials
+    column: global_warming_potential
+    extend: true
+    forecast_from: 2025
+
+- id: grid_emission_factor
+  name: Grid emission factor
+  description: >
+    eGRID subregion RFCW (RFC West), total output emission rate per gas. LGGIT
+    holds eGRID2022 as its latest year and applies it to 2022-2025. The tool
+    multiplies kWh by this factor directly, with no allowance for grid losses.
+  type: simple.AdditiveNode2
+  quantity: emission_factor
+  unit: lb/MWh
+  input_dimensions: [greenhouse_gas]
+  output_dimensions: [greenhouse_gas]
+  input_datasets:
+  - id: carmel/grid_emission_factors
+    column: grid_emission_factor
+    extend: true
+    forecast_from: 2025
+
+- id: natural_gas_emission_factor
+  name: Natural gas combustion emission factor
+  description: >
+    LGGIT's factor per thousand standard cubic feet (mcf) of natural gas, for
+    every sector. Therms are converted at 10.28 therms per mcf, which is the
+    conversion LGGIT gives on its entry form.
+  type: simple.AdditiveNode2
+  quantity: emission_factor
+  unit: kg/kscf
+  input_dimensions: [greenhouse_gas]
+  output_dimensions: [greenhouse_gas]
+  input_datasets:
+  - id: carmel/natural_gas_emission_factors
+    column: natural_gas_emission_factor
+    extend: true
+    forecast_from: 2025
+
+# ===========================================================================
+# Electricity (LGGIT Electricity-Entry, location-based)
+# ===========================================================================
+
+- id: electricity_consumption
+  name: Electricity consumption
+  description: >
+    Electricity used inside the city limits, by LGGIT sector. Electricity used
+    by the water and wastewater utilities belongs here too, under
+    Commercial/Institutional.
+  type: simple.AdditiveNode2
+  quantity: energy
+  unit: kWh/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: carmel/electricity_consumption
+    column: electricity_consumption
+    extend: true
+    forecast_from: 2025
+
+- id: electricity_consumption_emissions
+  name: Electricity emissions
+  description: Electricity consumption multiplied by the grid emission factor.
+  type: simple.MultiplicativeNode2
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector, greenhouse_gas]
+  output_dimensions: [sector, greenhouse_gas]
+  input_nodes:
+  - id: electricity_consumption
+    tags: [non_additive]
+    to_dimensions:
+    - id: sector
+  - id: grid_emission_factor
+    tags: [non_additive]
+    to_dimensions:
+    - id: greenhouse_gas
+  - id: global_warming_potential
+    tags: [non_additive]
+    to_dimensions:
+    - id: greenhouse_gas
+  output_nodes:
+  - id: electricity_emissions
+    from_dimensions:
+    - id: sector
+      flatten: true
+    - id: greenhouse_gas
+      flatten: true
+
+# ===========================================================================
+# Stationary combustion (LGGIT Stationary-Entry)
+# ===========================================================================
+
+- id: natural_gas_consumption
+  name: Natural gas consumption
+  description: >
+    Natural gas delivered inside the city limits, by LGGIT sector. Other
+    stationary fuels (propane, fuel oil) can be added as further datasets when
+    there is data for them.
+  type: simple.AdditiveNode2
+  quantity: energy
+  unit: therm/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: carmel/natural_gas_consumption
+    column: natural_gas_consumption
+    extend: true
+    forecast_from: 2025
+
+- id: natural_gas_combustion_emissions
+  name: Natural gas combustion emissions
+  type: simple.MultiplicativeNode2
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector, greenhouse_gas]
+  output_dimensions: [sector, greenhouse_gas]
+  input_nodes:
+  - id: natural_gas_consumption
+    tags: [non_additive]
+    to_dimensions:
+    - id: sector
+  - id: natural_gas_emission_factor
+    tags: [non_additive]
+    to_dimensions:
+    - id: greenhouse_gas
+  - id: global_warming_potential
+    tags: [non_additive]
+    to_dimensions:
+    - id: greenhouse_gas
+  output_nodes:
+  - id: stationary_combustion_emissions
+    from_dimensions:
+    - id: sector
+      flatten: true
+    - id: greenhouse_gas
+      flatten: true
+
+# ===========================================================================
+# Mobile combustion (LGGIT Mobile-Entry)
+# ===========================================================================
+# LGGIT takes two inputs per vehicle group and uses them separately: fuel burned
+# gives CO2, miles driven give CH4 and N2O.
+
+- id: vehicle_fuel_use
+  name: Vehicle fuel use
+  description: Gallons of fuel burned by on-road vehicles, by fuel and vehicle type.
+  type: simple.AdditiveNode2
+  quantity: fuel_consumption
+  unit: gal/a
+  input_dimensions: [energy_carrier, vehicle_type]
+  output_dimensions: [energy_carrier, vehicle_type]
+  input_datasets:
+  - id: carmel/vehicle_fuel_use
+    column: vehicle_fuel_use
+    extend: true
+    forecast_from: 2025
+
+- id: vehicle_miles
+  name: Vehicle miles travelled
+  description: Miles driven by on-road vehicles, by fuel and vehicle type.
+  type: simple.AdditiveNode2
+  quantity: vehicle_mileage
+  unit: VMT/a
+  input_dimensions: [energy_carrier, vehicle_type]
+  output_dimensions: [energy_carrier, vehicle_type]
+  input_datasets:
+  - id: carmel/vehicle_miles_travelled
+    column: vehicle_miles
+    extend: true
+    forecast_from: 2025
+
+- id: vehicle_fuel_emission_factor
+  name: Vehicle fuel emission factor
+  description: CO2 per gallon burned. Zero for CH4 and N2O, which LGGIT charges per
+    mile instead.
+  type: simple.AdditiveNode2
+  quantity: emission_factor
+  unit: kg/gal
+  input_dimensions: [energy_carrier, vehicle_type, greenhouse_gas]
+  output_dimensions: [energy_carrier, vehicle_type, greenhouse_gas]
+  input_datasets:
+  - id: carmel/vehicle_fuel_emission_factors
+    column: fuel_combustion_emission_factor
+    extend: true
+    forecast_from: 2025
+
+- id: vehicle_mileage_emission_factor
+  name: Vehicle mileage emission factor
+  description: >
+    CH4 and N2O per mile. LGGIT's factors depend on the vehicle's model year; one
+    representative model year stands in for the whole fleet until a local fleet
+    age profile is available.
+  type: simple.AdditiveNode2
+  quantity: emission_factor
+  unit: g/VMT
+  input_dimensions: [energy_carrier, vehicle_type, greenhouse_gas]
+  output_dimensions: [energy_carrier, vehicle_type, greenhouse_gas]
+  input_datasets:
+  - id: carmel/vehicle_mileage_emission_factors
+    column: mileage_emission_factor
+    extend: true
+    forecast_from: 2025
+
+- id: vehicle_fuel_combustion_emissions
+  name: Vehicle CO2 emissions
+  type: simple.MultiplicativeNode2
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [energy_carrier, vehicle_type, greenhouse_gas]
+  output_dimensions: [energy_carrier, vehicle_type, greenhouse_gas]
+  input_nodes:
+  - id: vehicle_fuel_use
+    tags: [non_additive]
+    to_dimensions:
+    - id: energy_carrier
+    - id: vehicle_type
+  - id: vehicle_fuel_emission_factor
+    tags: [non_additive]
+  - id: global_warming_potential
+    tags: [non_additive]
+    to_dimensions:
+    - id: greenhouse_gas
+  output_nodes:
+  - id: mobile_combustion_emissions
+    from_dimensions:
+    - id: energy_carrier
+      flatten: true
+    - id: vehicle_type
+      flatten: true
+    - id: greenhouse_gas
+      flatten: true
+
+- id: vehicle_mileage_emissions
+  name: Vehicle CH4 and N2O emissions
+  type: simple.MultiplicativeNode2
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [energy_carrier, vehicle_type, greenhouse_gas]
+  output_dimensions: [energy_carrier, vehicle_type, greenhouse_gas]
+  input_nodes:
+  - id: vehicle_miles
+    tags: [non_additive]
+    to_dimensions:
+    - id: energy_carrier
+    - id: vehicle_type
+  - id: vehicle_mileage_emission_factor
+    tags: [non_additive]
+  - id: global_warming_potential
+    tags: [non_additive]
+    to_dimensions:
+    - id: greenhouse_gas
+  output_nodes:
+  - id: mobile_combustion_emissions
+    from_dimensions:
+    - id: energy_carrier
+      flatten: true
+    - id: vehicle_type
+      flatten: true
+    - id: greenhouse_gas
+      flatten: true
+
+# ===========================================================================
+# Waste generation (LGGIT Waste Production, Scope 3)
+# ===========================================================================
+# There is no landfill inside Carmel, so LGGIT's in-boundary landfill sheets do not
+# apply and waste is counted where it is generated.
+
+- id: waste_landfilled
+  name: Waste sent to landfill
+  description: Municipal solid waste collected in Carmel and landfilled elsewhere.
+  type: simple.AdditiveNode2
+  quantity: mass
+  unit: short_ton/a
+  input_datasets:
+  - id: carmel/waste_generation
+    column: waste_landfilled
+    extend: true
+    forecast_from: 2025
+
+- id: landfill_emission_factor
+  name: Landfill emission factor
+  description: >
+    Emissions per short ton of mixed municipal solid waste landfilled. LGGIT
+    expects the total from EPA's Waste Reduction Model (WARM) for this line; this
+    factor stands in for that run.
+  type: simple.AdditiveNode2
+  quantity: emission_factor
+  unit: t_co2e/short_ton
+  input_datasets:
+  - id: carmel/waste_factors
+    column: landfill_emission_factor
+    extend: true
+    forecast_from: 2025
+
+- id: waste_landfill_emissions
+  name: Emissions from landfilled waste
+  type: simple.MultiplicativeNode2
+  quantity: emissions
+  unit: t_co2e/a
+  input_nodes:
+  - id: waste_landfilled
+    tags: [non_additive]
+  - id: landfill_emission_factor
+    tags: [non_additive]
+  output_nodes:
+  - id: waste_generation_emissions
+
+# ===========================================================================
+# Wastewater treatment (LGGIT Wastewater-Entry)
+# ===========================================================================
+
+- id: wastewater_population_served
+  name: Population served by wastewater treatment
+  description: >
+    People served by central aerobic treatment without
+    nitrification/denitrification. LGGIT uses other equations for lagoons,
+    anaerobic digesters, septic systems and plants with
+    nitrification/denitrification; those apply once the plants' treatment types
+    are confirmed.
+  type: simple.AdditiveNode2
+  quantity: population
+  unit: cap
+  input_datasets:
+  - id: carmel/wastewater_population
+    column: population_served
+    extend: true
+    forecast_from: 2025
+
+- id: wastewater_n2o_emission_factor
+  name: Wastewater N2O emission factor
+  description: >
+    N2O per person served, from the LGGIT defaults: the treatment process itself
+    (LGOP equation 10.8) and the nitrogen discharged in effluent (equation
+    10.10). Both include LGGIT's 1.25 factor for industrial discharge.
+  type: simple.AdditiveNode2
+  quantity: emission_factor
+  unit: g/cap/a
+  input_dimensions: [wastewater_process]
+  output_dimensions: [wastewater_process]
+  input_datasets:
+  - id: carmel/wastewater_factors
+    column: wastewater_n2o_emission_factor
+    extend: true
+    forecast_from: 2025
+
+- id: wastewater_n2o_emissions
+  name: Wastewater N2O emissions
+  type: simple.MultiplicativeNode2
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [wastewater_process]
+  output_dimensions: [wastewater_process]
+  input_nodes:
+  - id: wastewater_population_served
+    tags: [non_additive]
+    to_dimensions: []
+  - id: wastewater_n2o_emission_factor
+    tags: [non_additive]
+  - id: global_warming_potential
+    tags: [non_additive]
+    from_dimensions:
+    - id: greenhouse_gas
+      categories: [n2o]
+      flatten: true
+    to_dimensions: []
+  output_nodes:
+  - id: wastewater_emissions
+    from_dimensions:
+    - id: wastewater_process
+      flatten: true
+
+# ===========================================================================
+# Urban forestry (LGGIT Urban Forestry)
+# ===========================================================================
+
+- id: urban_area
+  name: Urban area
+  type: simple.AdditiveNode2
+  quantity: area
+  unit: km**2
+  input_datasets:
+  - id: carmel/urban_area
+    column: urban_area
+    extend: true
+    forecast_from: 2025
+
+- id: tree_cover_fraction
+  name: Tree cover
+  description: Share of the urban area under tree canopy.
+  type: simple.AdditiveNode2
+  quantity: fraction
+  unit: dimensionless
+  input_datasets:
+  - id: carmel/tree_cover
+    column: tree_cover_fraction
+    extend: true
+    forecast_from: 2025
+
+- id: tree_cover_emission_factor
+  name: Tree cover sequestration factor
+  description: >
+    LGGIT's default of 2.23 tonnes of carbon taken up per hectare of tree cover
+    each year, expressed as CO2. Negative because it is a removal.
+  type: simple.AdditiveNode2
+  quantity: emission_factor
+  unit: t_co2e/ha/a
+  input_datasets:
+  - id: carmel/urban_forest_factors
+    column: tree_cover_emission_factor
+    extend: true
+    forecast_from: 2025
+
+- id: urban_forest_removals
+  name: Carbon taken up by urban trees
+  description: Urban area multiplied by tree cover and the sequestration factor.
+    Counted in net emissions only, as in LGGIT.
+  type: simple.MultiplicativeNode2
+  quantity: emissions
+  unit: t_co2e/a
+  input_nodes:
+  - id: urban_area
+    tags: [non_additive]
+  - id: tree_cover_fraction
+    tags: [non_additive]
+  - id: tree_cover_emission_factor
+    tags: [non_additive]
+  output_nodes:
+  - id: urban_forestry_emissions
+
+# ===========================================================================
+# Sources entered as finished figures (LGGIT Imported Water, Agriculture &
+# Land Management, Additional Emission Sources)
+# ===========================================================================
+
+- id: other_reported_emissions
+  name: Other reported emissions
+  description: >
+    Emission figures entered directly rather than calculated here: imported
+    water, fertiliser use, and anything LGGIT lists under additional sources.
+    All three are zero placeholders until there is data.
+  type: simple.AdditiveNode2
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [lggit_source]
+  output_dimensions: [lggit_source]
+  input_datasets:
+  - id: carmel/other_reported_emissions
+    column: other_reported_emissions
+    extend: true
+    forecast_from: 2025
+  output_nodes:
+  - id: imported_water_emissions
+    from_dimensions:
+    - id: lggit_source
+      categories: [imported_water]
+      flatten: true
+  - id: agriculture_emissions
+    from_dimensions:
+    - id: lggit_source
+      categories: [agriculture_land_management]
+      flatten: true
+  - id: additional_emissions
+    from_dimensions:
+    - id: lggit_source
+      categories: [additional_sources]
+      flatten: true
+
+# ===========================================================================
+# City operations (LGGIT Government Operations Module)
+# ===========================================================================
+
+- id: city_electricity_consumption
+  name: City operations electricity consumption
+  type: simple.AdditiveNode2
+  quantity: energy
+  unit: kWh/a
+  input_dimensions: [city_department]
+  output_dimensions: [city_department]
+  input_datasets:
+  - id: carmel/city_operations_electricity
+    column: city_electricity_consumption
+    extend: true
+    forecast_from: 2025
+
+- id: city_electricity_use_emissions
+  name: City operations electricity emissions
+  type: simple.MultiplicativeNode2
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [city_department, greenhouse_gas]
+  output_dimensions: [city_department, greenhouse_gas]
+  input_nodes:
+  - id: city_electricity_consumption
+    tags: [non_additive]
+    to_dimensions:
+    - id: city_department
+  - id: grid_emission_factor
+    tags: [non_additive]
+    to_dimensions:
+    - id: greenhouse_gas
+  - id: global_warming_potential
+    tags: [non_additive]
+    to_dimensions:
+    - id: greenhouse_gas
+  output_nodes:
+  - id: city_electricity_emissions
+    from_dimensions:
+    - id: city_department
+      flatten: true
+    - id: greenhouse_gas
+      flatten: true
+
+- id: city_natural_gas_consumption
+  name: City operations natural gas consumption
+  type: simple.AdditiveNode2
+  quantity: energy
+  unit: therm/a
+  input_dimensions: [city_department]
+  output_dimensions: [city_department]
+  input_datasets:
+  - id: carmel/city_operations_natural_gas
+    column: city_natural_gas_consumption
+    extend: true
+    forecast_from: 2025
+
+- id: city_natural_gas_combustion_emissions
+  name: City operations natural gas emissions
+  type: simple.MultiplicativeNode2
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [city_department, greenhouse_gas]
+  output_dimensions: [city_department, greenhouse_gas]
+  input_nodes:
+  - id: city_natural_gas_consumption
+    tags: [non_additive]
+    to_dimensions:
+    - id: city_department
+  - id: natural_gas_emission_factor
+    tags: [non_additive]
+    to_dimensions:
+    - id: greenhouse_gas
+  - id: global_warming_potential
+    tags: [non_additive]
+    to_dimensions:
+    - id: greenhouse_gas
+  output_nodes:
+  - id: city_stationary_combustion_emissions
+    from_dimensions:
+    - id: city_department
+      flatten: true
+    - id: greenhouse_gas
+      flatten: true
+
+- id: city_fleet_fuel_use
+  name: City fleet fuel use
+  type: simple.AdditiveNode2
+  quantity: fuel_consumption
+  unit: gal/a
+  input_dimensions: [energy_carrier]
+  output_dimensions: [energy_carrier]
+  input_datasets:
+  - id: carmel/city_fleet_fuel
+    column: city_fleet_fuel_use
+    extend: true
+    forecast_from: 2025
+
+- id: fleet_fuel_emission_factor
+  name: Fleet fuel emission factor
+  description: CO2 per gallon burned. Fleet mileage is not recorded yet, so CH4 and
+    N2O, which LGGIT calculates from miles, are not counted for the fleet.
+  type: simple.AdditiveNode2
+  quantity: emission_factor
+  unit: kg/gal
+  input_dimensions: [energy_carrier, greenhouse_gas]
+  output_dimensions: [energy_carrier, greenhouse_gas]
+  input_datasets:
+  - id: carmel/fleet_fuel_emission_factors
+    column: fleet_fuel_emission_factor
+    extend: true
+    forecast_from: 2025
+
+- id: city_fleet_fuel_emissions
+  name: City fleet emissions
+  type: simple.MultiplicativeNode2
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [energy_carrier, greenhouse_gas]
+  output_dimensions: [energy_carrier, greenhouse_gas]
+  input_nodes:
+  - id: city_fleet_fuel_use
+    tags: [non_additive]
+    to_dimensions:
+    - id: energy_carrier
+  - id: fleet_fuel_emission_factor
+    tags: [non_additive]
+  - id: global_warming_potential
+    tags: [non_additive]
+    to_dimensions:
+    - id: greenhouse_gas
+  output_nodes:
+  - id: city_fleet_emissions
+    from_dimensions:
+    - id: energy_carrier
+      flatten: true
+    - id: greenhouse_gas
+      flatten: true
+
+- id: commute_vehicle_miles
+  name: Employee commute miles
+  type: simple.AdditiveNode2
+  quantity: vehicle_mileage
+  unit: VMT/a
+  input_datasets:
+  - id: carmel/employee_commute
+    column: commute_vehicle_miles
+    extend: true
+    forecast_from: 2025
+
+- id: commute_emission_factor
+  name: Commute emission factor
+  description: LGGIT's factor for a single-occupancy vehicle, per vehicle-mile.
+  type: simple.AdditiveNode2
+  quantity: emission_factor
+  unit: kg_co2e/VMT
+  input_datasets:
+  - id: carmel/commute_emission_factors
+    column: commute_emission_factor
+    extend: true
+    forecast_from: 2025
+
+- id: employee_commute_emissions
+  name: Employee commute emissions
+  type: simple.MultiplicativeNode2
+  quantity: emissions
+  unit: t_co2e/a
+  input_nodes:
+  - id: commute_vehicle_miles
+    tags: [non_additive]
+  - id: commute_emission_factor
+    tags: [non_additive]
+  output_nodes:
+  - id: city_commute_emissions
