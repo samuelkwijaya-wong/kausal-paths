@@ -88,6 +88,31 @@ feeds only NZC sector "other", so for now a Mission city would fill in both. A p
 out NZC's five measured totals (building heat, electricity, passenger-km, freight, other sectors) from the
 Irish inventory, so that the city enters its energy data once.
 
+### NetZeroPlanner sectors compared with GPC
+
+Where each GPC part ends up in NetZeroPlanner's sectors (`net_emissions` in `configs/nzc.yaml`). This compares
+how the sectors are set up; there are no Dublin numbers for it yet, because the NetZeroPlanner part needs its own
+city data.
+
+| GPC | NetZeroPlanner sector | Difference |
+|---|---|---|
+| I Stationary energy: fuel burnt in homes and commercial and public buildings (scope 1) | Buildings & Heating | Local heating only. District heat is also in Buildings & Heating, as scope 2. |
+| I Stationary energy: grid electricity used in buildings and industry (scope 2) | Electricity | NetZeroPlanner keeps all electricity in one sector, whatever it is used for. |
+| I Stationary energy: fuel burnt in manufacturing and construction (scope 1) | Other (or left out) | Not a sector of its own in NetZeroPlanner. |
+| I Stationary energy: power and heat plants in the city (I.4.4) | — | Not counted: NetZeroPlanner counts electricity and heat where they are used. |
+| II Transportation: road fuel for cars, buses and trucks (scope 1) | Transport | Passenger and freight transport both end up in Transport. |
+| II Transportation: rail (scope 1) | Transport | Trains are a transport mode in NetZeroPlanner. |
+| II Transportation: electricity used by vehicles (scope 2) | Electricity | Moves from Transportation in GPC to Electricity in NetZeroPlanner. |
+| II Transportation: water, aviation and off-road | — | Not part of the standard calculation. |
+| III Waste: solid waste, composting, incineration | Waste | GPC splits waste treated in the city (scope 1) from waste treated outside (scope 3). NetZeroPlanner counts all the city's collected waste as scope 3, wherever it is treated. |
+| III Waste: wastewater | Other (or left out) | NetZeroPlanner's waste sector covers solid waste only. |
+| IV Industrial processes and product use | Other | Includes F-gases. |
+| V Agriculture, forestry and land use | Other | |
+
+The NetZeroPlanner total is closest to GPC BASIC+, because its "other" sector covers industrial processes and
+land use. It differs from BASIC+ mainly in waste (scope 3 instead of scope 1) and in power plants in the city
+(left out).
+
 ### Pre-filling the NetZeroCities form
 
 For three fields the Irish inventory now gives suggested values. These are written into the city's
