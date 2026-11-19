@@ -1,0 +1,103 @@
+# ===========================================================================
+# Kausal Paths model template for US communities: business-as-usual drivers
+# ===========================================================================
+#
+# The BAU forecast scales each inventory activity by a driver relative to
+# the inventory year (edge tag ratio_to_last_historical_value), so the model
+# reproduces the inventory exactly in the inventory year:
+#   population    residential energy, on-road VMT, waste, water and
+#                 wastewater
+#   jobs          commercial and industrial energy
+#   vmt_per_capita  trend in on-road VMT per resident
+# Emission factor trajectories are entered directly as forecasts.
+#
+# IMPORTANT for every driver: historical values must end in the inventory
+# year. The ratio is taken against the last historical value, so a later
+# historical year would shift the whole forecast. Enter later years as
+# forecast values.
+#
+# No values are set here. Each node lists the kind of source a default
+# should come from; none has been read and cited yet (README, Q5 and Q6),
+# so the instance must supply every value with its citation.
+# ===========================================================================
+
+nodes:
+
+- id: population
+  name: Population
+  description: 'Instance input: resident population, inventory year as
+    historical value, projection as forecast values. Suggested sources: US
+    Census Bureau population estimates for the inventory year; the state
+    demographer''s official projection for the forecast.'
+  type: simple.AdditiveNode
+  quantity: population
+  unit: cap
+  input_dataset_processors: [LinearInterpolation]
+
+- id: jobs
+  name: Jobs
+  description: 'Instance input: jobs located in the community, inventory year
+    and projection. Suggested sources: US Census Bureau LEHD or BLS county
+    employment for the inventory year; the regional planning agency''s
+    adopted employment forecast.'
+  type: simple.AdditiveNode
+  quantity: employment
+  unit: job
+  input_dataset_processors: [LinearInterpolation]
+
+- id: vmt_per_capita
+  name: On-road VMT per resident
+  description: 'Instance input: VMT per resident in the inventory year
+    (inventory VMT divided by population) and its BAU trend. Suggested
+    source for the trend: the regional transportation plan of the
+    metropolitan planning organisation. A flat trend is an assumption and
+    must be recorded as one.'
+  type: simple.AdditiveNode
+  quantity: per_capita
+  unit: mile/cap/a
+  input_dataset_processors: [LinearInterpolation]
+
+- id: grid_electricity_emission_factor
+  name: Grid electricity emission factor
+  description: 'Instance input: the electricity emission factor used in the
+    inventory (historical) and its BAU trajectory (forecast). Suggested
+    sources: EPA eGRID subregion or the serving utility''s reported factor
+    for the inventory year; for the trajectory, state clean electricity law
+    targets or a published projection such as EIA Annual Energy Outlook or
+    NREL Cambium. Must not already include the city''s own clean electricity
+    procurement, which is an action.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: lb/MWh
+  input_dataset_processors: [LinearInterpolation]
+
+- id: electricity_per_therm_displaced
+  name: Electricity needed per therm of gas displaced
+  description: 'Instance input until a cited default exists: MWh of
+    electricity needed to deliver the same heat as one therm of natural gas,
+    i.e. gas appliance efficiency divided by heat pump efficiency, converted
+    from therms to MWh. Suggested sources: DOE or NREL building
+    electrification studies; the city''s own CAP technical appendix.'
+  type: simple.AdditiveNode
+  quantity: ratio
+  unit: MWh/therm
+
+- id: light_duty_ev_electricity_per_mile
+  name: Light-duty EV electricity per mile
+  description: 'Instance input until a cited default exists: kWh per mile
+    for light-duty electric vehicles, including charging losses. Suggested
+    sources: DOE and EPA fuel economy data; DOE Alternative Fuels Data
+    Center.'
+  type: simple.AdditiveNode
+  quantity: energy_factor
+  unit: kWh/mile
+
+- id: medium_heavy_ev_electricity_per_mile
+  name: Medium and heavy-duty ZEV electricity per mile
+  description: 'Instance input until a cited default exists: kWh per mile
+    for medium and heavy-duty zero-emission vehicles, including electric
+    transit buses. Suggested sources: NREL fleet evaluations; transit agency
+    reports.'
+  type: simple.AdditiveNode
+  quantity: energy_factor
+  unit: kWh/mile

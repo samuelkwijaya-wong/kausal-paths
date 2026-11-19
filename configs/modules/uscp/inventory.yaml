@@ -1,0 +1,1227 @@
+# ===========================================================================
+# Kausal Paths model template for US communities: inventory layer
+# ===========================================================================
+#
+# Takes a community-wide greenhouse gas inventory structured by the ICLEI
+# U.S. Community Protocol (USCP) as its input and carries it forward as a
+# business-as-usual (BAU) forecast that the action library in actions.yaml
+# modifies. See README.md in this directory.
+#
+# This file does NOT produce or certify an inventory. The city's own
+# published inventory is the input; this layer reproduces it in the
+# inventory year and projects it forward.
+#
+# Every inventory category is tagged twice, through two dimensions on every
+# emissions node:
+#   uscp_category  the USCP inventory category the emissions belong to
+#   gpc_sector     the nearest GPC sector (Stationary Energy, Transportation,
+#                  Waste, IPPU, AFOLU)
+# so results can be read in either structure without re-mapping.
+#
+# VERIFICATION NOTE: the uscp_category list was built from the project
+# crosswalk brief and the five basic emissions-generating activities named
+# in USCP v1.1 Section 2.2. The USCP v1.2 text itself could not be read
+# from the build environment (network policy). Check the category list and
+# labels against the protocol before the first demo (README, open question
+# Q1).
+#
+# Required from the including instance (not defined here):
+#   nodes:      net_emissions (emission sector with dimensions
+#               [uscp_category, gpc_sector], unit t/a)
+#   instance:   action_groups listed in README.md, because include does not
+#               merge action_groups
+# Required node files: drivers.yaml, actions.yaml (same directory).
+#
+# Inputs: every node whose id ends in _inventory, plus the emission factor
+# and share nodes marked "Instance input", carries NO values here. The
+# instance overrides each one with the city's published figure and its
+# citation (include with allow_override: true). A node left without values
+# is reported as incomplete rather than silently counted as zero.
+#
+# Units: US customary units where US inventories normally report them
+# (MWh, therms, MMBtu, miles); emissions in metric tonnes CO2e (t/a).
+# An instance may override a node with a different but dimensionally
+# compatible unit; Kausal Paths converts automatically.
+# ===========================================================================
+
+dimensions:
+
+- id: uscp_category
+  label: USCP inventory category
+  help_text: Inventory categories following the structure of the ICLEI U.S.
+    Community Protocol. Labels to be checked against the protocol text (see
+    README, open question Q1).
+  categories:
+  - id: residential_energy
+    label: Residential energy
+  - id: commercial_energy
+    label: Commercial energy
+  - id: industrial_energy
+    label: Industrial energy
+  - id: on_road_transport
+    label: On-road passenger and freight vehicles
+  - id: other_transport
+    label: Other transport and mobile sources
+  - id: solid_waste
+    label: Solid waste
+  - id: water_wastewater_energy
+    label: Energy for potable water and wastewater
+  - id: wastewater_process
+    label: Wastewater treatment process emissions
+  - id: agriculture
+    label: Agriculture (livestock)
+  - id: process_fugitive
+    label: Industrial process and fugitive emissions
+  - id: forest_trees
+    label: Forest land and trees
+
+- id: gpc_sector
+  label: GPC sector
+  help_text: Nearest sector of the Global Protocol for Community-Scale
+    Greenhouse Gas Emission Inventories (GPC). Used only to present the same
+    results in GPC-style sectors.
+  categories:
+  - id: stationary_energy
+    label: Stationary energy
+    color: '#4E79A7'
+  - id: transportation
+    label: Transportation
+    color: '#F28E2B'
+  - id: waste
+    label: Waste
+    color: '#76B7B2'
+  - id: ippu
+    label: Industrial processes and product use
+    color: '#B07AA1'
+  - id: afolu
+    label: Agriculture, forestry and other land use
+    color: '#59A14F'
+
+nodes:
+
+# ===========================================================================
+# BUILT ENVIRONMENT: residential, commercial and industrial energy
+# USCP: built environment (electricity use; stationary fuel combustion).
+# GPC: Stationary Energy.
+# Driver: population for residential, jobs for commercial and industrial.
+# Action order on each activity (see README, "Double counting"):
+#   1. efficiency (retrofits, then building performance standard), applied
+#      to all fuels as sequential (1 - x) factors
+#   2. electrification, applied to the natural gas left after efficiency;
+#      the gas it displaces becomes electricity through one conversion
+#      factor
+#   3. local solar, subtracted from the electricity left after 1 and 2
+# ===========================================================================
+
+# --------------------- Residential ----------------------------------------
+
+- id: residential_electricity_use_inventory
+  name: Residential electricity use (inventory)
+  description: 'Instance input: residential electricity use reported in the
+    city''s published inventory, inventory year(s) only.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MWh/a
+
+- id: residential_natural_gas_use_inventory
+  name: Residential natural gas use (inventory)
+  description: 'Instance input: residential natural gas use reported in the
+    city''s published inventory.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: therm/a
+
+- id: residential_other_fuel_use_inventory
+  name: Residential other fuel use (inventory)
+  description: 'Instance input: residential propane, fuel oil, wood and other
+    stationary fuels from the inventory, as energy. Enter zero only if the
+    inventory reports zero.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MMBtu/a
+
+- id: residential_electricity_use
+  name: Residential electricity use
+  description: Inventory value carried forward with population, reduced by
+    residential efficiency retrofits, increased by the electricity that
+    replaces displaced natural gas, and reduced by residential local solar.
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: MWh/a
+  input_nodes:
+  - id: residential_electricity_use_inventory
+    tags: [non_additive]
+  - id: population
+    tags: [ratio_to_last_historical_value, non_additive]
+  - id: residential_efficiency_retrofits
+    tags: [complement]
+  - id: residential_electricity_from_electrification
+  - id: residential_local_solar
+    tags: [truncate_before_start, truncate_beyond_end, arithmetic_inverse]
+  output_nodes:
+  - id: electricity_use
+    tags: [make_nonnegative]
+    to_dimensions:
+    - id: uscp_category
+      categories: [residential_energy]
+
+- id: residential_natural_gas_use_after_efficiency
+  name: Residential natural gas use after efficiency
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: therm/a
+  input_nodes:
+  - id: residential_natural_gas_use_inventory
+    tags: [non_additive]
+  - id: population
+    tags: [ratio_to_last_historical_value, non_additive]
+  - id: residential_efficiency_retrofits
+    tags: [complement]
+
+- id: residential_natural_gas_use
+  name: Residential natural gas use
+  description: Natural gas left after efficiency, then reduced by
+    electrification of existing homes and by all-electric new construction.
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: therm/a
+  input_nodes:
+  - id: residential_natural_gas_use_after_efficiency
+    tags: [non_additive]
+  - id: residential_electrification
+    tags: [complement]
+  - id: residential_all_electric_new_construction
+    tags: [complement]
+  output_nodes:
+  - id: natural_gas_use
+    to_dimensions:
+    - id: uscp_category
+      categories: [residential_energy]
+
+- id: residential_natural_gas_displaced
+  name: Residential natural gas displaced by electrification
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: therm/a
+  input_nodes:
+  - id: residential_natural_gas_use_after_efficiency
+  - id: residential_natural_gas_use
+    tags: [arithmetic_inverse]
+
+- id: residential_electricity_from_electrification
+  name: Residential electricity added by electrification
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: MWh/a
+  input_nodes:
+  - id: residential_natural_gas_displaced
+    tags: [non_additive]
+  - id: electricity_per_therm_displaced
+
+- id: residential_other_fuel_use
+  name: Residential other fuel use
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: MMBtu/a
+  input_nodes:
+  - id: residential_other_fuel_use_inventory
+    tags: [non_additive]
+  - id: population
+    tags: [ratio_to_last_historical_value, non_additive]
+  - id: residential_efficiency_retrofits
+    tags: [complement]
+  output_nodes:
+  - id: other_fuel_use
+    to_dimensions:
+    - id: uscp_category
+      categories: [residential_energy]
+
+# --------------------- Commercial -----------------------------------------
+
+- id: commercial_electricity_use_inventory
+  name: Commercial electricity use (inventory)
+  description: 'Instance input: commercial (including institutional and
+    municipal) electricity use from the inventory.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MWh/a
+
+- id: commercial_natural_gas_use_inventory
+  name: Commercial natural gas use (inventory)
+  description: 'Instance input: commercial natural gas use from the
+    inventory.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: therm/a
+
+- id: commercial_other_fuel_use_inventory
+  name: Commercial other fuel use (inventory)
+  description: 'Instance input: commercial propane, fuel oil and other
+    stationary fuels from the inventory, as energy.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MMBtu/a
+
+- id: commercial_electricity_use
+  name: Commercial electricity use
+  description: Inventory value carried forward with jobs, reduced by
+    commercial retrofits and then the building performance standard,
+    increased by electrification, reduced by commercial local solar.
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: MWh/a
+  input_nodes:
+  - id: commercial_electricity_use_inventory
+    tags: [non_additive]
+  - id: jobs
+    tags: [ratio_to_last_historical_value, non_additive]
+  - id: commercial_efficiency_retrofits
+    tags: [complement]
+  - id: building_performance_standard
+    tags: [complement]
+  - id: commercial_electricity_from_electrification
+  - id: commercial_local_solar
+    tags: [truncate_before_start, truncate_beyond_end, arithmetic_inverse]
+  output_nodes:
+  - id: electricity_use
+    tags: [make_nonnegative]
+    to_dimensions:
+    - id: uscp_category
+      categories: [commercial_energy]
+
+- id: commercial_natural_gas_use_after_efficiency
+  name: Commercial natural gas use after efficiency
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: therm/a
+  input_nodes:
+  - id: commercial_natural_gas_use_inventory
+    tags: [non_additive]
+  - id: jobs
+    tags: [ratio_to_last_historical_value, non_additive]
+  - id: commercial_efficiency_retrofits
+    tags: [complement]
+  - id: building_performance_standard
+    tags: [complement]
+
+- id: commercial_natural_gas_use
+  name: Commercial natural gas use
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: therm/a
+  input_nodes:
+  - id: commercial_natural_gas_use_after_efficiency
+    tags: [non_additive]
+  - id: commercial_electrification
+    tags: [complement]
+  - id: commercial_all_electric_new_construction
+    tags: [complement]
+  output_nodes:
+  - id: natural_gas_use
+    to_dimensions:
+    - id: uscp_category
+      categories: [commercial_energy]
+
+- id: commercial_natural_gas_displaced
+  name: Commercial natural gas displaced by electrification
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: therm/a
+  input_nodes:
+  - id: commercial_natural_gas_use_after_efficiency
+  - id: commercial_natural_gas_use
+    tags: [arithmetic_inverse]
+
+- id: commercial_electricity_from_electrification
+  name: Commercial electricity added by electrification
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: MWh/a
+  input_nodes:
+  - id: commercial_natural_gas_displaced
+    tags: [non_additive]
+  - id: electricity_per_therm_displaced
+
+- id: commercial_other_fuel_use
+  name: Commercial other fuel use
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: MMBtu/a
+  input_nodes:
+  - id: commercial_other_fuel_use_inventory
+    tags: [non_additive]
+  - id: jobs
+    tags: [ratio_to_last_historical_value, non_additive]
+  - id: commercial_efficiency_retrofits
+    tags: [complement]
+  - id: building_performance_standard
+    tags: [complement]
+  output_nodes:
+  - id: other_fuel_use
+    to_dimensions:
+    - id: uscp_category
+      categories: [commercial_energy]
+
+# --------------------- Industrial (BAU only in v1) ------------------------
+
+- id: industrial_electricity_use_inventory
+  name: Industrial electricity use (inventory)
+  description: 'Instance input: industrial electricity use from the
+    inventory.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MWh/a
+
+- id: industrial_natural_gas_use_inventory
+  name: Industrial natural gas use (inventory)
+  description: 'Instance input: industrial natural gas use from the
+    inventory, excluding gas burned to generate grid electricity.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: therm/a
+
+- id: industrial_other_fuel_use_inventory
+  name: Industrial other fuel use (inventory)
+  description: 'Instance input: other industrial stationary fuels from the
+    inventory, as energy.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MMBtu/a
+
+- id: industrial_electricity_use
+  name: Industrial electricity use
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: MWh/a
+  input_nodes:
+  - id: industrial_electricity_use_inventory
+    tags: [non_additive]
+  - id: jobs
+    tags: [ratio_to_last_historical_value, non_additive]
+  output_nodes:
+  - id: electricity_use
+    to_dimensions:
+    - id: uscp_category
+      categories: [industrial_energy]
+
+- id: industrial_natural_gas_use
+  name: Industrial natural gas use
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: therm/a
+  input_nodes:
+  - id: industrial_natural_gas_use_inventory
+    tags: [non_additive]
+  - id: jobs
+    tags: [ratio_to_last_historical_value, non_additive]
+  output_nodes:
+  - id: natural_gas_use
+    to_dimensions:
+    - id: uscp_category
+      categories: [industrial_energy]
+
+- id: industrial_other_fuel_use
+  name: Industrial other fuel use
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: MMBtu/a
+  input_nodes:
+  - id: industrial_other_fuel_use_inventory
+    tags: [non_additive]
+  - id: jobs
+    tags: [ratio_to_last_historical_value, non_additive]
+  output_nodes:
+  - id: other_fuel_use
+    to_dimensions:
+    - id: uscp_category
+      categories: [industrial_energy]
+
+# --------------------- Energy totals and emissions ------------------------
+
+- id: electricity_use
+  name: Community electricity use
+  description: Grid electricity used in buildings and by water and
+    wastewater utilities. Electricity for vehicle charging is counted
+    separately under on-road transport.
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MWh/a
+  input_dimensions: [uscp_category]
+  output_dimensions: [uscp_category]
+
+- id: electricity_emission_factor
+  name: Electricity emission factor used in the model
+  description: The grid emission factor (drivers.yaml) reduced by clean
+    electricity procurement. Electricity added by building electrification
+    and vehicle charging is counted at this factor, so procurement is never
+    credited twice.
+  type: simple.MultiplicativeNode
+  quantity: emission_factor
+  unit: lb/MWh
+  input_nodes:
+  - id: grid_electricity_emission_factor
+    tags: [non_additive]
+  - id: clean_electricity_procurement
+    tags: [complement]
+
+- id: electricity_emissions
+  name: Electricity emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: t/a
+  input_dimensions: [uscp_category]
+  output_dimensions: [uscp_category]
+  input_nodes:
+  - id: electricity_use
+    tags: [non_additive]
+  - id: electricity_emission_factor
+    to_dimensions: []
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+    - id: gpc_sector
+      categories: [stationary_energy]
+
+- id: natural_gas_use
+  name: Community natural gas use
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: therm/a
+  input_dimensions: [uscp_category]
+  output_dimensions: [uscp_category]
+
+- id: natural_gas_emission_factor
+  name: Natural gas combustion emission factor
+  description: 'Instance input: CO2e per therm used in the city''s inventory.
+    No template default yet (README, open question Q6).'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: kg/therm
+
+- id: natural_gas_emissions
+  name: Natural gas combustion emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: t/a
+  input_dimensions: [uscp_category]
+  output_dimensions: [uscp_category]
+  input_nodes:
+  - id: natural_gas_use
+    tags: [non_additive]
+  - id: natural_gas_emission_factor
+    to_dimensions: []
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+    - id: gpc_sector
+      categories: [stationary_energy]
+
+- id: other_fuel_use
+  name: Community other stationary fuel use
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MMBtu/a
+  input_dimensions: [uscp_category]
+  output_dimensions: [uscp_category]
+
+- id: other_fuel_emission_factor
+  name: Other stationary fuel emission factor
+  description: 'Instance input: blended CO2e per MMBtu for the inventory''s
+    mix of propane, fuel oil and other fuels. No template default yet
+    (README, open question Q6).'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: kg/MMBtu
+
+- id: other_fuel_emissions
+  name: Other stationary fuel emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: t/a
+  input_dimensions: [uscp_category]
+  output_dimensions: [uscp_category]
+  input_nodes:
+  - id: other_fuel_use
+    tags: [non_additive]
+  - id: other_fuel_emission_factor
+    to_dimensions: []
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+    - id: gpc_sector
+      categories: [stationary_energy]
+
+# ===========================================================================
+# ON-ROAD TRANSPORT
+# USCP: on-road passenger and freight motor vehicle travel. GPC:
+# Transportation.
+# The inventory's vehicle miles travelled (VMT) are used as published,
+# whichever boundary method the inventory used (in-boundary geographic or
+# origin-destination). State the method in the instance (README, Q3).
+# Action order (see README, "Double counting"):
+#   1. demand actions (mode shift, transit expansion, land use) reduce
+#      light-duty VMT as sequential (1 - x) factors
+#   2. electrification actions convert a share of the REMAINING VMT to
+#      electric, also as sequential (1 - x) factors on the internal
+#      combustion share
+#   3. electric VMT is converted to electricity and counted at the model
+#      electricity emission factor
+# ===========================================================================
+
+- id: onroad_vmt_inventory
+  name: On-road vehicle miles travelled (inventory)
+  description: 'Instance input: total on-road VMT from the inventory,
+    passenger and freight. Record in the description which allocation
+    method the inventory used.'
+  type: simple.AdditiveNode
+  quantity: mileage
+  unit: Mmile/a
+
+- id: light_duty_vmt_share
+  name: Light-duty share of on-road VMT
+  description: 'Instance input: share of on-road VMT by light-duty vehicles,
+    from the inventory or the source it used for its vehicle mix. Transit
+    buses belong to the medium and heavy-duty share.'
+  type: simple.AdditiveNode
+  quantity: fraction
+  unit: '%'
+
+- id: onroad_vmt_bau
+  name: On-road VMT, business as usual
+  description: Inventory VMT carried forward with population and with the
+    per-capita VMT trend.
+  type: simple.MultiplicativeNode
+  quantity: mileage
+  unit: Mmile/a
+  input_nodes:
+  - id: onroad_vmt_inventory
+    tags: [non_additive]
+  - id: population
+    tags: [ratio_to_last_historical_value, non_additive]
+  - id: vmt_per_capita
+    tags: [ratio_to_last_historical_value, non_additive]
+
+- id: light_duty_vmt
+  name: Light-duty VMT
+  description: Light-duty share of BAU VMT, reduced in sequence by active
+    transport mode shift, transit service expansion and land-use VMT
+    reduction.
+  type: simple.MultiplicativeNode
+  quantity: mileage
+  unit: Mmile/a
+  input_nodes:
+  - id: onroad_vmt_bau
+    tags: [non_additive]
+  - id: light_duty_vmt_share
+  - id: active_transport_mode_shift
+    tags: [complement]
+  - id: transit_service_expansion
+    tags: [complement]
+  - id: land_use_vmt_reduction
+    tags: [complement]
+
+- id: light_duty_combustion_vmt
+  name: Light-duty VMT by combustion vehicles
+  description: Light-duty VMT left after demand actions, times the share not
+    electrified by EV adoption, public charging and municipal fleet
+    electrification.
+  type: simple.MultiplicativeNode
+  quantity: mileage
+  unit: Mmile/a
+  input_nodes:
+  - id: light_duty_vmt
+    tags: [non_additive]
+  - id: light_duty_ev_adoption
+    tags: [complement]
+  - id: public_charging_buildout
+    tags: [complement]
+  - id: municipal_fleet_electrification
+    tags: [complement]
+
+- id: light_duty_electric_vmt
+  name: Light-duty VMT by electric vehicles
+  type: simple.AdditiveNode
+  quantity: mileage
+  unit: Mmile/a
+  input_nodes:
+  - id: light_duty_vmt
+  - id: light_duty_combustion_vmt
+    tags: [arithmetic_inverse]
+
+- id: medium_heavy_vmt
+  name: Medium and heavy-duty VMT
+  type: simple.MultiplicativeNode
+  quantity: mileage
+  unit: Mmile/a
+  input_nodes:
+  - id: onroad_vmt_bau
+    tags: [non_additive]
+  - id: light_duty_vmt_share
+    tags: [complement]
+
+- id: medium_heavy_combustion_vmt
+  name: Medium and heavy-duty VMT by combustion vehicles
+  type: simple.MultiplicativeNode
+  quantity: mileage
+  unit: Mmile/a
+  input_nodes:
+  - id: medium_heavy_vmt
+    tags: [non_additive]
+  - id: medium_heavy_zev_adoption
+    tags: [complement]
+  - id: transit_fleet_electrification
+    tags: [complement]
+
+- id: medium_heavy_electric_vmt
+  name: Medium and heavy-duty VMT by zero-emission vehicles
+  type: simple.AdditiveNode
+  quantity: mileage
+  unit: Mmile/a
+  input_nodes:
+  - id: medium_heavy_vmt
+  - id: medium_heavy_combustion_vmt
+    tags: [arithmetic_inverse]
+
+- id: light_duty_emission_factor
+  name: Light-duty fleet emission factor
+  description: 'Instance input: CO2e per mile for the light-duty fleet in the
+    inventory year, with its BAU forecast (state or federal vehicle emission
+    model). If the BAU forecast already includes electric vehicles required
+    by state rules, the EV adoption action must count only adoption beyond
+    that (README, "Double counting").'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: g/mile
+
+- id: medium_heavy_emission_factor
+  name: Medium and heavy-duty fleet emission factor
+  description: 'Instance input: CO2e per mile for medium and heavy-duty
+    vehicles, inventory year and BAU forecast.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: g/mile
+
+- id: light_duty_fuel_emissions
+  name: Light-duty vehicle fuel emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: t/a
+  input_nodes:
+  - id: light_duty_combustion_vmt
+    tags: [non_additive]
+  - id: light_duty_emission_factor
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [on_road_transport]
+    - id: gpc_sector
+      categories: [transportation]
+
+- id: medium_heavy_fuel_emissions
+  name: Medium and heavy-duty vehicle fuel emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: t/a
+  input_nodes:
+  - id: medium_heavy_combustion_vmt
+    tags: [non_additive]
+  - id: medium_heavy_emission_factor
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [on_road_transport]
+    - id: gpc_sector
+      categories: [transportation]
+
+- id: light_duty_charging_electricity
+  name: Light-duty EV charging electricity
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: MWh/a
+  input_nodes:
+  - id: light_duty_electric_vmt
+    tags: [non_additive]
+  - id: light_duty_ev_electricity_per_mile
+  output_nodes:
+  - id: vehicle_charging_electricity
+
+- id: medium_heavy_charging_electricity
+  name: Medium and heavy-duty ZEV charging electricity
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: MWh/a
+  input_nodes:
+  - id: medium_heavy_electric_vmt
+    tags: [non_additive]
+  - id: medium_heavy_ev_electricity_per_mile
+  output_nodes:
+  - id: vehicle_charging_electricity
+
+- id: vehicle_charging_electricity
+  name: Vehicle charging electricity added by actions
+  description: Only the electricity for VMT that actions move to electric
+    vehicles. Charging already in the inventory year is inside the
+    building electricity figures.
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MWh/a
+
+- id: vehicle_charging_emissions
+  name: Vehicle charging emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: t/a
+  input_nodes:
+  - id: vehicle_charging_electricity
+    tags: [non_additive]
+  - id: electricity_emission_factor
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [on_road_transport]
+    - id: gpc_sector
+      categories: [transportation]
+
+# ===========================================================================
+# OTHER TRANSPORT AND MOBILE SOURCES
+# Transit rail, aviation, waterborne, off-road equipment. Entered as an
+# inventory total; held at the inventory value (no driver, no action in
+# v1).
+# ===========================================================================
+
+- id: other_transport_emissions_inventory
+  name: Other transport and mobile source emissions (inventory)
+  description: 'Instance input: inventory total for rail, aviation,
+    waterborne and off-road sources, if the inventory reports them.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [other_transport]
+    - id: gpc_sector
+      categories: [transportation]
+
+# ===========================================================================
+# SOLID WASTE
+# USCP: generation of solid waste by the community. GPC: Waste.
+# Landfilled waste is split into organics and other materials because the
+# two have very different methane emission factors; diverting organics
+# would be understated with a single mixed-waste factor.
+# ===========================================================================
+
+- id: landfilled_waste_inventory
+  name: Landfilled solid waste (inventory)
+  description: 'Instance input: tonnes of community solid waste landfilled,
+    from the inventory.'
+  type: simple.AdditiveNode
+  quantity: mass
+  unit: t/a
+
+- id: landfilled_organics_share
+  name: Organics share of landfilled waste
+  description: 'Instance input: share of landfilled waste that is organic
+    (food, yard and wood waste), from a state or local waste
+    characterisation study.'
+  type: simple.AdditiveNode
+  quantity: fraction
+  unit: '%'
+
+- id: landfilled_organics_bau
+  name: Landfilled organics, business as usual
+  type: simple.MultiplicativeNode
+  quantity: mass
+  unit: t/a
+  input_nodes:
+  - id: landfilled_waste_inventory
+    tags: [non_additive]
+  - id: population
+    tags: [ratio_to_last_historical_value, non_additive]
+  - id: landfilled_organics_share
+
+- id: landfilled_organics
+  name: Landfilled organics
+  type: simple.MultiplicativeNode
+  quantity: mass
+  unit: t/a
+  input_nodes:
+  - id: landfilled_organics_bau
+    tags: [non_additive]
+  - id: organics_diversion
+    tags: [complement]
+
+- id: composted_organics
+  name: Organics diverted to composting
+  type: simple.AdditiveNode
+  quantity: mass
+  unit: t/a
+  input_nodes:
+  - id: landfilled_organics_bau
+  - id: landfilled_organics
+    tags: [arithmetic_inverse]
+
+- id: landfilled_other_waste
+  name: Landfilled other materials
+  type: simple.MultiplicativeNode
+  quantity: mass
+  unit: t/a
+  input_nodes:
+  - id: landfilled_waste_inventory
+    tags: [non_additive]
+  - id: population
+    tags: [ratio_to_last_historical_value, non_additive]
+  - id: landfilled_organics_share
+    tags: [complement]
+  - id: recycling_increase
+    tags: [complement]
+
+- id: landfill_emission_factor_organics
+  name: Landfill emission factor, organics
+  description: 'Instance input: tonnes CO2e per tonne of organics
+    landfilled, consistent with the inventory''s landfill method. No
+    template default yet (README, Q6).'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: t/t
+
+- id: landfill_emission_factor_other
+  name: Landfill emission factor, other materials
+  description: 'Instance input: tonnes CO2e per tonne of other landfilled
+    materials. Together with the organics factor it must reproduce the
+    inventory''s landfill emissions in the inventory year.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: t/t
+
+- id: landfill_emissions_organics
+  name: Landfill emissions from organics
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: t/a
+  input_nodes:
+  - id: landfilled_organics
+    tags: [non_additive]
+  - id: landfill_emission_factor_organics
+  - id: landfill_gas_capture
+    tags: [complement]
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [solid_waste]
+    - id: gpc_sector
+      categories: [waste]
+
+- id: landfill_emissions_other
+  name: Landfill emissions from other materials
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: t/a
+  input_nodes:
+  - id: landfilled_other_waste
+    tags: [non_additive]
+  - id: landfill_emission_factor_other
+  - id: landfill_gas_capture
+    tags: [complement]
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [solid_waste]
+    - id: gpc_sector
+      categories: [waste]
+
+- id: compost_emission_factor
+  name: Composting emission factor
+  description: 'Instance input: tonnes CO2e per tonne composted. No template
+    default yet (README, Q6).'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: t/t
+
+- id: compost_emissions
+  name: Composting emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: t/a
+  input_nodes:
+  - id: composted_organics
+    tags: [non_additive]
+  - id: compost_emission_factor
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [solid_waste]
+    - id: gpc_sector
+      categories: [waste]
+
+# ===========================================================================
+# WATER AND WASTEWATER
+# USCP: use of energy in potable water and wastewater treatment and
+# distribution (basic activity), plus wastewater process emissions.
+# GPC: the energy part is Stationary Energy, the process part is Waste.
+# ===========================================================================
+
+- id: water_wastewater_electricity_use_inventory
+  name: Water and wastewater electricity use (inventory)
+  description: 'Instance input: electricity used to pump, treat and
+    distribute potable water and to collect and treat wastewater, from the
+    inventory. If the inventory includes this in commercial electricity,
+    enter it here and remove it from the commercial figure.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MWh/a
+
+- id: water_wastewater_natural_gas_use_inventory
+  name: Water and wastewater natural gas use (inventory)
+  description: 'Instance input: natural gas used by water and wastewater
+    utilities, from the inventory.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: therm/a
+
+- id: water_wastewater_electricity_use
+  name: Water and wastewater electricity use
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: MWh/a
+  input_nodes:
+  - id: water_wastewater_electricity_use_inventory
+    tags: [non_additive]
+  - id: population
+    tags: [ratio_to_last_historical_value, non_additive]
+  - id: water_treatment_energy_efficiency
+    tags: [complement]
+  output_nodes:
+  - id: electricity_use
+    to_dimensions:
+    - id: uscp_category
+      categories: [water_wastewater_energy]
+
+- id: water_wastewater_natural_gas_use
+  name: Water and wastewater natural gas use
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: therm/a
+  input_nodes:
+  - id: water_wastewater_natural_gas_use_inventory
+    tags: [non_additive]
+  - id: population
+    tags: [ratio_to_last_historical_value, non_additive]
+  - id: water_treatment_energy_efficiency
+    tags: [complement]
+  output_nodes:
+  - id: natural_gas_use
+    to_dimensions:
+    - id: uscp_category
+      categories: [water_wastewater_energy]
+
+- id: wastewater_process_emissions_inventory
+  name: Wastewater process emissions (inventory)
+  description: 'Instance input: methane and nitrous oxide from wastewater
+    treatment and effluent, as CO2e, from the inventory.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+
+- id: wastewater_process_emissions
+  name: Wastewater process emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: t/a
+  input_nodes:
+  - id: wastewater_process_emissions_inventory
+    tags: [non_additive]
+  - id: population
+    tags: [ratio_to_last_historical_value, non_additive]
+  - id: wastewater_process_reduction
+    tags: [complement]
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [wastewater_process]
+    - id: gpc_sector
+      categories: [waste]
+
+# ===========================================================================
+# AGRICULTURE, PROCESS AND FUGITIVE EMISSIONS
+# Entered as inventory totals and held constant in v1.
+# ===========================================================================
+
+- id: livestock_emissions_inventory
+  name: Livestock emissions (inventory)
+  description: 'Instance input: enteric fermentation and manure management
+    emissions from the inventory, if reported.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [agriculture]
+    - id: gpc_sector
+      categories: [afolu]
+
+- id: industrial_process_emissions_inventory
+  name: Industrial process emissions (inventory)
+  description: 'Instance input: industrial process and product use
+    emissions (including refrigerant leakage) from the inventory, if
+    reported.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [process_fugitive]
+    - id: gpc_sector
+      categories: [ippu]
+
+- id: fugitive_emissions_inventory
+  name: Fugitive emissions (inventory)
+  description: 'Instance input: fugitive emissions from natural gas
+    distribution and other fuel systems, from the inventory, if reported.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [process_fugitive]
+    - id: gpc_sector
+      categories: [stationary_energy]
+
+# ===========================================================================
+# FOREST LAND AND TREES (USCP 2019 forest and land use appendix)
+# GPC: AFOLU. Negative values are removals.
+# Forest land is entered as the inventory's net flux. Trees outside forest
+# are built as canopy area x removal factor so canopy expansion can act on
+# them. Harvested wood products are not included.
+# ===========================================================================
+
+- id: forest_net_flux_inventory
+  name: Forest land net flux (inventory)
+  description: 'Instance input: net emissions (positive) or removals
+    (negative) from forest land, from the inventory, if reported.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [forest_trees]
+    - id: gpc_sector
+      categories: [afolu]
+
+- id: urban_tree_canopy_area_inventory
+  name: Urban tree canopy area (inventory)
+  description: 'Instance input: tree canopy area outside forest land in the
+    inventory year.'
+  type: simple.AdditiveNode
+  quantity: area
+  unit: ha
+
+- id: urban_tree_canopy_area
+  name: Urban tree canopy area
+  type: simple.AdditiveNode
+  quantity: area
+  unit: ha
+  input_nodes:
+  - id: urban_tree_canopy_area_inventory
+  - id: urban_tree_canopy_expansion
+    tags: [truncate_before_start, truncate_beyond_end]
+
+- id: urban_tree_removal_factor
+  name: Urban tree carbon removal factor
+  description: 'Instance input: net CO2e removed per hectare of canopy per
+    year, as a negative number, consistent with the inventory''s method. No
+    template default yet (README, Q6).'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: t/ha/a
+
+- id: urban_tree_sequestration
+  name: Urban tree carbon removals
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: t/a
+  input_nodes:
+  - id: urban_tree_canopy_area
+    tags: [non_additive]
+  - id: urban_tree_removal_factor
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [forest_trees]
+    - id: gpc_sector
+      categories: [afolu]
+
+# ===========================================================================
+# REPORTING
+# GPC-sector view: use the gpc_sector dimension of net_emissions.
+# USCP basic activities: the five basic emissions-generating activities as
+# named in USCP v1.1 Section 2.2 (to be re-checked against v1.2, README Q1).
+# ===========================================================================
+
+- id: uscp_basic_activities_emissions
+  name: USCP basic emissions-generating activities
+  description: 'Sum of the five basic activities: community electricity use;
+    stationary fuel combustion in homes and businesses; on-road passenger
+    and freight travel; energy for potable water and wastewater; community
+    solid waste. This is a sum of model results, not an assessment of
+    whether the inventory meets the protocol.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  is_outcome: true
+  input_dimensions: [uscp_category]
+  output_dimensions: [uscp_category]
+  input_nodes:
+  - id: electricity_emissions
+  - id: natural_gas_emissions
+    from_dimensions:
+    - id: uscp_category
+      categories: [residential_energy, commercial_energy, water_wastewater_energy]
+  - id: other_fuel_emissions
+    from_dimensions:
+    - id: uscp_category
+      categories: [residential_energy, commercial_energy]
+  - id: light_duty_fuel_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [on_road_transport]
+  - id: medium_heavy_fuel_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [on_road_transport]
+  - id: vehicle_charging_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [on_road_transport]
+  - id: landfill_emissions_organics
+    to_dimensions:
+    - id: uscp_category
+      categories: [solid_waste]
+  - id: landfill_emissions_other
+    to_dimensions:
+    - id: uscp_category
+      categories: [solid_waste]
+  - id: compost_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [solid_waste]
