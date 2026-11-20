@@ -17,8 +17,10 @@
 # with OR when it joins series, so a forecast-flagged neutral series would
 # relabel the inventory year as forecast. Where an action is ADDED rather
 # than multiplied (local solar, tree canopy), the receiving edge carries
-# truncate_before_start and truncate_beyond_end, because adding takes the
-# union of years and would otherwise extend results to 1990 and 2100.
+# forecast_only and truncate_beyond_end: adding takes the union of years and
+# fills gaps with zero, so a series covering every year would write zeros
+# into years with no inventory (for example between two inventory years).
+# With forecast_only the neutral, all-historical series adds nothing.
 # To parameterise an action, the instance overrides it with the city's
 # trajectory and a citation for each number, keeping zeros up to the
 # inventory year, for example:
@@ -320,11 +322,10 @@ actions:
 - id: transit_fleet_electrification
   name: Transit bus fleet electrification
   description: 'Replacing diesel and gas transit buses with battery or fuel
-    cell electric buses. Causal path: electrifies a further share of medium
-    and heavy-duty VMT. Parameter: transit bus share of medium and
-    heavy-duty VMT times the share of the bus fleet electrified (%), by
-    year. Default: none, no cited source yet. Overlaps: combined with
-    medium and heavy-duty ZEV adoption as a sequential factor.'
+    cell electric buses. Causal path: moves a share of transit vehicle
+    miles to zero-emission buses, charged at the model electricity emission
+    factor. Parameter: share of transit vehicle miles electrified (%), by
+    year. Default: none, no cited source yet.'
   type: simple.AdditiveAction
   group: transportation
   quantity: fraction

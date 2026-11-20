@@ -18,12 +18,12 @@
 #                  Waste, IPPU, AFOLU)
 # so results can be read in either structure without re-mapping.
 #
-# VERIFICATION NOTE: the uscp_category list was built from the project
-# crosswalk brief and the five basic emissions-generating activities named
-# in USCP v1.1 Section 2.2. The USCP v1.2 text itself could not be read
-# from the build environment (network policy). Check the category list and
-# labels against the protocol before the first demo (README, open question
-# Q1).
+# Category labels follow USCP v1.2 (July 2019): the sector names of the
+# Appendix B summary table (pp.72-75) and Table 2 (pp.17-18), split into
+# subcategories where actions need it. The five basic emissions-generating
+# activities are from Section 2.2 (pp.26-28). Following Section 1.1 (p.13),
+# forest and land fluxes stay in their own category, and
+# gross_emissions_excluding_land reports the total without them.
 #
 # Required from the including instance (not defined here):
 #   nodes:      net_emissions (emission sector with dimensions
@@ -48,32 +48,34 @@ dimensions:
 
 - id: uscp_category
   label: USCP inventory category
-  help_text: Inventory categories following the structure of the ICLEI U.S.
-    Community Protocol. Labels to be checked against the protocol text (see
-    README, open question Q1).
+  help_text: Inventory categories following the sectors of the ICLEI U.S.
+    Community Protocol v1.2 (Appendix B summary table, pp.72-75, and Table 2,
+    pp.17-18), split further where actions need it.
   categories:
   - id: residential_energy
-    label: Residential energy
+    label: 'Built Environment: residential energy'
   - id: commercial_energy
-    label: Commercial energy
+    label: 'Built Environment: commercial energy'
   - id: industrial_energy
-    label: Industrial energy
+    label: 'Built Environment: industrial energy'
   - id: on_road_transport
-    label: On-road passenger and freight vehicles
+    label: 'Transportation: on-road passenger, freight and transit vehicles'
   - id: other_transport
-    label: Other transport and mobile sources
+    label: 'Transportation: other mobile sources'
   - id: solid_waste
-    label: Solid waste
+    label: Solid Waste
   - id: water_wastewater_energy
-    label: Energy for potable water and wastewater
+    label: 'Water and Wastewater: energy use'
   - id: wastewater_process
-    label: Wastewater treatment process emissions
+    label: 'Water and Wastewater: process emissions'
   - id: agriculture
-    label: Agriculture (livestock)
+    label: Agriculture
   - id: process_fugitive
-    label: Industrial process and fugitive emissions
+    label: Process and fugitive emissions
   - id: forest_trees
-    label: Forest land and trees
+    label: Forests and Lands
+  - id: upstream_impacts
+    label: Upstream Impacts of Community-Wide Activities
 
 - id: gpc_sector
   label: GPC sector
@@ -152,12 +154,12 @@ nodes:
   - id: residential_electricity_use_inventory
     tags: [non_additive]
   - id: population
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   - id: residential_efficiency_retrofits
     tags: [complement]
   - id: residential_electricity_from_electrification
   - id: residential_local_solar
-    tags: [truncate_before_start, truncate_beyond_end, arithmetic_inverse]
+    tags: [forecast_only, truncate_beyond_end, arithmetic_inverse]
   output_nodes:
   - id: electricity_use
     tags: [make_nonnegative]
@@ -174,7 +176,7 @@ nodes:
   - id: residential_natural_gas_use_inventory
     tags: [non_additive]
   - id: population
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   - id: residential_efficiency_retrofits
     tags: [complement]
 
@@ -227,7 +229,7 @@ nodes:
   - id: residential_other_fuel_use_inventory
     tags: [non_additive]
   - id: population
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   - id: residential_efficiency_retrofits
     tags: [complement]
   output_nodes:
@@ -274,14 +276,14 @@ nodes:
   - id: commercial_electricity_use_inventory
     tags: [non_additive]
   - id: jobs
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   - id: commercial_efficiency_retrofits
     tags: [complement]
   - id: building_performance_standard
     tags: [complement]
   - id: commercial_electricity_from_electrification
   - id: commercial_local_solar
-    tags: [truncate_before_start, truncate_beyond_end, arithmetic_inverse]
+    tags: [forecast_only, truncate_beyond_end, arithmetic_inverse]
   output_nodes:
   - id: electricity_use
     tags: [make_nonnegative]
@@ -298,7 +300,7 @@ nodes:
   - id: commercial_natural_gas_use_inventory
     tags: [non_additive]
   - id: jobs
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   - id: commercial_efficiency_retrofits
     tags: [complement]
   - id: building_performance_standard
@@ -351,7 +353,7 @@ nodes:
   - id: commercial_other_fuel_use_inventory
     tags: [non_additive]
   - id: jobs
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   - id: commercial_efficiency_retrofits
     tags: [complement]
   - id: building_performance_standard
@@ -397,7 +399,7 @@ nodes:
   - id: industrial_electricity_use_inventory
     tags: [non_additive]
   - id: jobs
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   output_nodes:
   - id: electricity_use
     to_dimensions:
@@ -413,7 +415,7 @@ nodes:
   - id: industrial_natural_gas_use_inventory
     tags: [non_additive]
   - id: jobs
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   output_nodes:
   - id: natural_gas_use
     to_dimensions:
@@ -429,7 +431,7 @@ nodes:
   - id: industrial_other_fuel_use_inventory
     tags: [non_additive]
   - id: jobs
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   output_nodes:
   - id: other_fuel_use
     to_dimensions:
@@ -559,8 +561,11 @@ nodes:
 # USCP: on-road passenger and freight motor vehicle travel. GPC:
 # Transportation.
 # The inventory's vehicle miles travelled (VMT) are used as published,
-# whichever boundary method the inventory used (in-boundary geographic or
-# origin-destination). State the method in the instance (README, Q3).
+# whichever allocation the inventory used: USCP v1.2 Appendix D method
+# TR.1.A (recommended, origin-destination, p.12) or TR.1.B (alternative,
+# in-boundary, p.18). The protocol says results of the two should not be
+# compared, so state the method in the instance. Transit is kept apart, as
+# in Appendix D method TR.4 (p.39).
 # Action order (see README, "Double counting"):
 #   1. demand actions (mode shift, transit expansion, land use) reduce
 #      light-duty VMT as sequential (1 - x) factors
@@ -600,9 +605,9 @@ nodes:
   - id: onroad_vmt_inventory
     tags: [non_additive]
   - id: population
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   - id: vmt_per_capita
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
 
 - id: light_duty_vmt
   name: Light-duty VMT
@@ -672,8 +677,6 @@ nodes:
     tags: [non_additive]
   - id: medium_heavy_zev_adoption
     tags: [complement]
-  - id: transit_fleet_electrification
-    tags: [complement]
 
 - id: medium_heavy_electric_vmt
   name: Medium and heavy-duty VMT by zero-emission vehicles
@@ -684,6 +687,93 @@ nodes:
   - id: medium_heavy_vmt
   - id: medium_heavy_combustion_vmt
     tags: [arithmetic_inverse]
+
+# --------------------- Public transit -------------------------------------
+# Kept apart from other on-road travel because transit agencies report it
+# separately (vehicle miles and fuel) and because fleet electrification acts
+# on it directly. If an inventory includes transit in its general on-road
+# VMT, enter zero transit miles here.
+
+- id: transit_vmt_inventory
+  name: Transit vehicle miles (inventory)
+  description: 'Instance input: transit vehicle miles attributed to the
+    community, from the inventory. Enter zero if the inventory includes
+    transit in its general on-road VMT.'
+  type: simple.AdditiveNode
+  quantity: mileage
+  unit: Mmile/a
+
+- id: transit_emission_factor
+  name: Transit fleet emission factor
+  description: 'Instance input: CO2e per transit vehicle mile, from the
+    inventory (emissions divided by vehicle miles), with its BAU forecast.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: g/mile
+
+- id: transit_vmt
+  name: Transit vehicle miles
+  description: Inventory value carried forward with population. Added
+    service from transit expansion is not modelled in v1 (README, Q9).
+  type: simple.MultiplicativeNode
+  quantity: mileage
+  unit: Mmile/a
+  input_nodes:
+  - id: transit_vmt_inventory
+    tags: [non_additive]
+  - id: population
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
+
+- id: transit_combustion_vmt
+  name: Transit vehicle miles by combustion vehicles
+  type: simple.MultiplicativeNode
+  quantity: mileage
+  unit: Mmile/a
+  input_nodes:
+  - id: transit_vmt
+    tags: [non_additive]
+  - id: transit_fleet_electrification
+    tags: [complement]
+
+- id: transit_electric_vmt
+  name: Transit vehicle miles by zero-emission vehicles
+  type: simple.AdditiveNode
+  quantity: mileage
+  unit: Mmile/a
+  input_nodes:
+  - id: transit_vmt
+  - id: transit_combustion_vmt
+    tags: [arithmetic_inverse]
+
+- id: transit_fuel_emissions
+  name: Transit fuel emissions
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: t/a
+  input_nodes:
+  - id: transit_combustion_vmt
+    tags: [non_additive]
+  - id: transit_emission_factor
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [on_road_transport]
+    - id: gpc_sector
+      categories: [transportation]
+
+- id: transit_charging_electricity
+  name: Electric transit charging electricity
+  description: Uses the medium and heavy-duty electricity-per-mile factor.
+  type: simple.MultiplicativeNode
+  quantity: energy
+  unit: MWh/a
+  input_nodes:
+  - id: transit_electric_vmt
+    tags: [non_additive]
+  - id: medium_heavy_ev_electricity_per_mile
+  output_nodes:
+  - id: vehicle_charging_electricity
 
 - id: light_duty_emission_factor
   name: Light-duty fleet emission factor
@@ -789,6 +879,43 @@ nodes:
       categories: [transportation]
 
 # ===========================================================================
+# UPSTREAM IMPACTS: ELECTRICITY TRANSMISSION AND DISTRIBUTION LOSSES
+# Electricity lost between power plant and meter, counted as a share of
+# electricity emissions, so grid decarbonisation, clean procurement,
+# efficiency and local solar all reduce it.
+# ===========================================================================
+
+- id: electricity_transmission_loss_share
+  name: Transmission and distribution losses as share of electricity emissions
+  description: 'Instance input: transmission and distribution loss emissions
+    from the inventory divided by the inventory''s electricity emissions
+    (in effect the loss rate the inventory applied, typically an eGRID
+    grid gross loss rate).'
+  type: simple.AdditiveNode
+  quantity: fraction
+  unit: '%'
+
+- id: transmission_loss_emissions
+  name: Electricity transmission and distribution losses
+  type: simple.MultiplicativeNode
+  quantity: emissions
+  unit: t/a
+  input_nodes:
+  - id: electricity_emissions
+    tags: [non_additive]
+    from_dimensions:
+    - id: uscp_category
+      flatten: true
+  - id: electricity_transmission_loss_share
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [upstream_impacts]
+    - id: gpc_sector
+      categories: [stationary_energy]
+
+# ===========================================================================
 # OTHER TRANSPORT AND MOBILE SOURCES
 # Transit rail, aviation, waterborne, off-road equipment. Entered as an
 # inventory total; held at the inventory value (no driver, no action in
@@ -844,7 +971,7 @@ nodes:
   - id: landfilled_waste_inventory
     tags: [non_additive]
   - id: population
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   - id: landfilled_organics_share
 
 - id: landfilled_organics
@@ -877,7 +1004,7 @@ nodes:
   - id: landfilled_waste_inventory
     tags: [non_additive]
   - id: population
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   - id: landfilled_organics_share
     tags: [complement]
   - id: recycling_increase
@@ -998,7 +1125,7 @@ nodes:
   - id: water_wastewater_electricity_use_inventory
     tags: [non_additive]
   - id: population
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   - id: water_treatment_energy_efficiency
     tags: [complement]
   output_nodes:
@@ -1016,7 +1143,7 @@ nodes:
   - id: water_wastewater_natural_gas_use_inventory
     tags: [non_additive]
   - id: population
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   - id: water_treatment_energy_efficiency
     tags: [complement]
   output_nodes:
@@ -1042,7 +1169,7 @@ nodes:
   - id: wastewater_process_emissions_inventory
     tags: [non_additive]
   - id: population
-    tags: [ratio_to_last_historical_value, non_additive]
+    tags: [ratio_to_last_historical_value, indifferent_history_ratio, non_additive]
   - id: wastewater_process_reduction
     tags: [complement]
   output_nodes:
@@ -1143,7 +1270,7 @@ nodes:
   input_nodes:
   - id: urban_tree_canopy_area_inventory
   - id: urban_tree_canopy_expansion
-    tags: [truncate_before_start, truncate_beyond_end]
+    tags: [forecast_only, truncate_beyond_end]
 
 - id: urban_tree_removal_factor
   name: Urban tree carbon removal factor
@@ -1174,8 +1301,8 @@ nodes:
 # ===========================================================================
 # REPORTING
 # GPC-sector view: use the gpc_sector dimension of net_emissions.
-# USCP basic activities: the five basic emissions-generating activities as
-# named in USCP v1.1 Section 2.2 (to be re-checked against v1.2, README Q1).
+# USCP basic activities: the five basic emissions-generating activities of
+# USCP v1.2 Section 2.2 (pp.26-28).
 # ===========================================================================
 
 - id: uscp_basic_activities_emissions
@@ -1209,6 +1336,10 @@ nodes:
     to_dimensions:
     - id: uscp_category
       categories: [on_road_transport]
+  - id: transit_fuel_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [on_road_transport]
   - id: vehicle_charging_emissions
     to_dimensions:
     - id: uscp_category
@@ -1225,3 +1356,21 @@ nodes:
     to_dimensions:
     - id: uscp_category
       categories: [solid_waste]
+
+- id: gross_emissions_excluding_land
+  name: Gross emissions (excluding forests and lands)
+  description: 'Net emissions without the Forests and Lands category. USCP
+    v1.2 Section 1.1 (p.13) recommends reporting land-sector fluxes as a
+    separate category while reporting gross emissions in the other sectors.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  is_outcome: true
+  input_dimensions: [uscp_category, gpc_sector]
+  output_dimensions: [uscp_category, gpc_sector]
+  input_nodes:
+  - id: net_emissions
+    from_dimensions:
+    - id: uscp_category
+      categories: [forest_trees]
+      exclude: true

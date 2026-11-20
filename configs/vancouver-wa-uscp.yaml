@@ -1,0 +1,910 @@
+# ===========================================================================
+# DEMO INSTANCE: City of Vancouver, Washington
+# Kausal Paths model template for US communities (configs/modules/uscp/)
+# ===========================================================================
+#
+# Purpose: sales demonstration. Built by Kausal from public documents; not
+# endorsed by or prepared with the City of Vancouver.
+#
+# Inventory input: the City's 2023 community inventory, which follows the
+# ICLEI U.S. Community Protocol v1.2 and was calculated in ClearPath (p.8).
+# Two inventory years are loaded: 2023 (Table 1, p.11) and the adjusted 2019
+# inventory (Table 11, p.25), which the City recalculated with the 2023
+# methods.
+#
+# Reconciliation with the published totals (emission factors derived from
+# the same tables):
+#   2023  model 1,456,611 t CO2e   published 1,456,611   difference 0
+#   2019  model 1,763,769 t CO2e   published 1,763,768   difference +1 (rounding)
+# By category the only differences come from using one natural gas factor
+# for all sectors: 2023 residential gas -64 t, commercial -42 t, industrial
+# +119 t (each under 0.15%).
+#
+# What is cited and what is not:
+#   - Inventory figures, emission factors, population, jobs and the grid
+#     trajectory end point are cited in each node description, using the
+#     source ids of configs/modules/uscp/sources.csv (S20 and up).
+#   - EVERY ACTION TRAJECTORY IS AN ILLUSTRATIVE PLACEHOLDER chosen so the
+#     demo shows plausible effects. None is a published figure or a City
+#     commitment. Five technical factors are also illustrative (marked
+#     ILLUSTRATIVE in their descriptions): electricity per therm displaced,
+#     EV electricity per mile (light-duty and medium/heavy-duty), organics
+#     share of landfilled waste and the urban tree removal factor.
+#
+# Licence note: the inventory report is published under CC BY-NC-ND 4.0
+# (p.4). Only numeric figures are used here, with attribution; no text or
+# figures are reproduced. See configs/modules/uscp/README.md, open question
+# Q14.
+#
+# Source shorthand used below:
+#   S20  City of Vancouver 2023 Inventory of Community and Government
+#        Operations Greenhouse Gas Emissions, City of Vancouver Climate
+#        Program with ICLEI USA, 9 September 2024.
+#        https://www.cityofvancouver.us/wp-content/uploads/2024/09/Attachment-A-2023-GHG-Inventory_VancouverWA_Community-and-Government.pdf
+#   S21  ECOnorthwest, Economic Conditions and Opportunities Analysis, City
+#        of Vancouver Comprehensive Plan Update (memorandum), 21 June 2024.
+#        https://www.cityofvancouver.us/wp-content/uploads/2025/05/Comprehensive_Plan_Economic_Conditions___Opportunity_Analysis_1.pdf
+#   S22  City of Vancouver, "City Council adopts Comprehensive Plan to guide
+#        Vancouver's growth over the next 20 years", news release,
+#        2 June 2026.
+#        https://www.cityofvancouver.us/city-council-adopts-comprehensive-plan-to-guide-vancouvers-growth-over-the-next-20-years/
+#   S23  US EPA, GHG Emission Factors Hub, last modified 12 September 2023.
+#        https://www.epa.gov/system/files/documents/2023-03/ghg_emission_factors_hub.pdf
+#   S02  ICLEI USA, U.S. Community Protocol v1.2 (July 2019), incl.
+#        Appendix E (Solid Waste) and Appendix J (Forest Land and Trees).
+# ===========================================================================
+
+id: vancouver-wa-uscp
+default_language: en
+supported_languages: []
+dataset_repo:
+  url: https://github.com/kausaltech/dvctest.git
+  dvc_remote: kausal-s3
+name: Vancouver, WA community greenhouse gas emissions (demo)
+owner: Kausal (demonstration)
+theme_identifier: default
+target_year: 2040
+model_end_year: 2045
+reference_year: 2019
+minimum_historical_year: 2019
+maximum_historical_year: 2023
+emission_unit: t/a
+emission_forecast_from: 2024
+emission_dimensions: [uscp_category, gpc_sector]
+features:
+  baseline_visible_in_graphs: true
+  show_explanations: true
+
+include:
+- file: modules/uscp/inventory.yaml
+  allow_override: true
+- file: modules/uscp/drivers.yaml
+  allow_override: true
+- file: modules/uscp/actions.yaml
+  allow_override: true
+
+action_groups:
+- id: electricity
+  name: Electricity
+  color: '#4E79A7'
+- id: buildings
+  name: Buildings
+  color: '#59A14F'
+- id: transportation
+  name: Transportation
+  color: '#F28E2B'
+- id: waste
+  name: Waste
+  color: '#76B7B2'
+- id: water
+  name: Water and wastewater
+  color: '#9C755F'
+- id: land_use
+  name: Land use
+  color: '#8CD17D'
+
+emission_sectors:
+- id: net_emissions
+  name: Community greenhouse gas emissions
+  description: 'Community-wide emissions in the categories of the City''s
+    2023 inventory (S20, Table 1, p.11), viewable by USCP category or GPC
+    sector. Goal values: the City aims to cut community-wide emissions 80%
+    by 2030 and to be carbon neutral by 2040 (S20, p.10), both relative to
+    the 2007 baseline. The 2007 total is not stated in S20; the 2030 value
+    here is derived from the stated 27% reduction from 2007 to 2023 (S20,
+    pp.5 and 10): 1,456,611 / 0.73 x 0.2 = 399,072 t CO2e. Carbon neutral is
+    shown as zero.'
+  is_outcome: true
+  goals:
+  - label: City of Vancouver community target
+    default: true
+    is_main_goal: true
+    linear_interpolation: true
+    values:
+    - year: 2030
+      value: 399072
+    - year: 2040
+      value: 0
+
+nodes:
+
+# ===========================================================================
+# DRIVERS
+# ===========================================================================
+
+- id: population
+  name: Population
+  description: 'Historical: 161,791 in 2010 and 199,600 in 2023, Office of
+    Financial Management estimates as reported in S21, Exhibit 8, p.23;
+    2019 is a linear interpolation. Forecast: 199,600 + 81,000 = 280,600 in
+    2045, from "Vancouver is expected to grow by 81,000 people by 2045"
+    (S22; the base year is not stated and 2023 is assumed). The 2024 point
+    is the straight line to 2045. S21 notes annexations of about 6,126
+    people between 2010 and 2020 (p.23, note 17).'
+  type: simple.AdditiveNode
+  quantity: population
+  unit: cap
+  historical_values: [[2010, 161791], [2023, 199600]]
+  forecast_values: [[2024, 203282], [2045, 280600]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: jobs
+  name: Jobs
+  description: 'Historical: 77,846 jobs in 2011 and 99,057 in 2021 (S21,
+    p.36). 2023 is derived as 2021 plus two years at the 2011 to 2021
+    average gain of 2,121 jobs a year stated on the same page: 103,299.
+    Forecast: 103,299 + 43,000 = 146,299 in 2045, from "43,000 more jobs
+    are needed" by 2045 (S22; base year assumed 2023).'
+  type: simple.AdditiveNode
+  quantity: employment
+  unit: job
+  historical_values: [[2011, 77846], [2021, 99057], [2023, 103299]]
+  forecast_values: [[2024, 105254], [2045, 146299]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: vmt_per_capita
+  name: On-road VMT per resident
+  description: 'Inventory on-road VMT (S20, Table 1, p.11 and Table 11,
+    p.25) divided by population: 5,408.8 miles in 2023; 6,511.0 in 2019
+    (using the interpolated 2019 population). ASSUMPTION: held at the 2023
+    value after 2023; no published per-resident VMT trend was found. S20
+    expects travel to rise as pre-pandemic patterns return (p.6), so this
+    is likely to understate BAU transport emissions.'
+  type: simple.AdditiveNode
+  quantity: per_capita
+  unit: mile/cap/a
+  historical_values: [[2019, 6511.0], [2023, 5408.8]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: grid_electricity_emission_factor
+  name: Clark Public Utilities electricity emission factor
+  description: 'Inventory years: emissions divided by use for residential,
+    commercial and industrial electricity (S20, Table 1, p.11; Table 11,
+    p.25): 311.15 lb CO2e/MWh in 2023 and 343.19 in 2019. The 2023 value
+    matches Table 4 (p.19): 310.6971 lb CO2/MWh, 7.71 lb CH4/GWh and 0.89 lb
+    N2O/GWh with AR5 GWPs (p.8). Forecast: zero in 2045 because Washington''s
+    Clean Energy Transformation Act requires utilities to be 100%
+    carbon-free by 2045 (S20, p.6). ASSUMPTION: straight-line decline from
+    2023 to 2045; the Act''s 2030 "GHG neutral" step (p.6) allows
+    alternative compliance and is not modelled as zero.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: lb/MWh
+  historical_values: [[2019, 343.19], [2023, 311.15]]
+  forecast_values: [[2024, 297.01], [2045, 0.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: electricity_per_therm_displaced
+  name: Electricity needed per therm of gas displaced
+  description: 'ILLUSTRATIVE: 1 therm = 0.0293 MWh, times an assumed gas
+    appliance efficiency of 0.8, divided by an assumed heat pump
+    efficiency (COP) of 3.0, gives 0.0078 MWh per therm. Not from a cited
+    source.'
+  type: simple.AdditiveNode
+  quantity: ratio
+  unit: MWh/therm
+  historical_values: [[2019, 0.0078], [2023, 0.0078]]
+
+- id: light_duty_ev_electricity_per_mile
+  name: Light-duty EV electricity per mile
+  description: 'ILLUSTRATIVE: 0.30 kWh per mile. Not from a cited source.'
+  type: simple.AdditiveNode
+  quantity: energy_factor
+  unit: kWh/mile
+  historical_values: [[2019, 0.30], [2023, 0.30]]
+
+- id: medium_heavy_ev_electricity_per_mile
+  name: Medium and heavy-duty ZEV electricity per mile
+  description: 'ILLUSTRATIVE: 2.0 kWh per mile, also used for electric
+    buses. Not from a cited source.'
+  type: simple.AdditiveNode
+  quantity: energy_factor
+  unit: kWh/mile
+  historical_values: [[2019, 2.0], [2023, 2.0]]
+
+# ===========================================================================
+# BUILT ENVIRONMENT (S20, Table 1, p.11 and Table 11, p.25)
+# Electricity from Clark Public Utilities, natural gas from Northwest
+# Natural. Non-utility fuels (wood, oil heat) are not in the inventory
+# (S20, p.19), so other fuels are zero.
+# ===========================================================================
+
+- id: residential_electricity_use_inventory
+  name: Residential electricity use (inventory)
+  description: 'S20: 935,798,884 kWh in 2023 (Table 1, p.11); 849,728,564
+    kWh in 2019 (Table 11, p.25).'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MWh/a
+  historical_values: [[2019, 849728.564], [2023, 935798.884]]
+
+- id: residential_natural_gas_use_inventory
+  name: Residential natural gas use (inventory)
+  description: 'S20: 17,748,236 therms in 2023 (Table 1, p.11); 16,939,928
+    therms in 2019 (Table 11, p.25). Weather-normalised (p.19).'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: therm/a
+  historical_values: [[2019, 16939928], [2023, 17748236]]
+
+- id: residential_other_fuel_use_inventory
+  name: Residential other fuel use (inventory)
+  description: 'Zero: non-utility fuels are not accounted for in S20 (p.19).'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MMBtu/a
+  historical_values: [[2019, 0], [2023, 0]]
+
+- id: commercial_electricity_use_inventory
+  name: Commercial electricity use (inventory)
+  description: 'S20: 768,724,075 kWh in 2023 (Table 1, p.11); 780,129,152
+    kWh in 2019 (Table 11, p.25).'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MWh/a
+  historical_values: [[2019, 780129.152], [2023, 768724.075]]
+
+- id: commercial_natural_gas_use_inventory
+  name: Commercial natural gas use (inventory)
+  description: 'S20: 14,949,639 therms in 2023 (Table 1, p.11); 13,974,309
+    therms in 2019 (Table 11, p.25).'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: therm/a
+  historical_values: [[2019, 13974309], [2023, 14949639]]
+
+- id: commercial_other_fuel_use_inventory
+  name: Commercial other fuel use (inventory)
+  description: 'Zero: non-utility fuels are not accounted for in S20 (p.19).'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MMBtu/a
+  historical_values: [[2019, 0], [2023, 0]]
+
+- id: industrial_electricity_use_inventory
+  name: Industrial electricity use (inventory)
+  description: 'S20: 349,090,417 kWh in 2023 (Table 1, p.11); 367,445,960
+    kWh in 2019 (Table 11, p.25).'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MWh/a
+  historical_values: [[2019, 367445.960], [2023, 349090.417]]
+
+- id: industrial_natural_gas_use_inventory
+  name: Industrial natural gas use (inventory)
+  description: 'S20: 15,424,459 therms in 2023 (Table 1, p.11); 4,399,622
+    therms in 2019 (Table 11, p.25). Includes gas that businesses procure
+    themselves and ship through Northwest Natural ("transportation" loads,
+    pp.12 and 19), which explains most of the increase.'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: therm/a
+  historical_values: [[2019, 4399622], [2023, 15424459]]
+
+- id: industrial_other_fuel_use_inventory
+  name: Industrial other fuel use (inventory)
+  description: 'Zero: other industrial fuels are not accounted for in S20
+    (p.19).'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MMBtu/a
+  historical_values: [[2019, 0], [2023, 0]]
+
+- id: natural_gas_emission_factor
+  name: Natural gas combustion emission factor
+  description: 'Derived from S20: total natural gas emissions divided by
+    total therms for residential, commercial and industrial use: 5.31506 kg
+    CO2e/therm in 2023 (Table 1, p.11) and 5.31726 in 2019 (Table 11,
+    p.25). One factor for all sectors reproduces the total exactly; by
+    sector the differences are under 0.15%.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: kg/therm
+  historical_values: [[2019, 5.31726], [2023, 5.31506]]
+
+- id: other_fuel_emission_factor
+  name: Other stationary fuel emission factor
+  description: 'Propane, S23 Table 1 (Stationary Combustion): 62.87 kg
+    CO2, 3.0 g CH4 and 0.60 g N2O per MMBtu, combined with AR5 GWPs (28,
+    265) as used in S20 (p.8): 63.113 kg CO2e/MMBtu. Has no effect while
+    other fuel use is zero.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: kg/MMBtu
+  historical_values: [[2019, 63.113], [2023, 63.113]]
+
+# ===========================================================================
+# TRANSPORTATION (S20, Table 1, p.11 and Table 11, p.25)
+# On-road VMT from Google Environmental Insights Explorer: 50% of inbound,
+# 50% of outbound and 100% of in-boundary trips (S20, Table 5, p.20), an
+# origin-destination allocation (USCP Appendix D, method TR.1.A). The
+# inventory splits on-road travel into gasoline (passenger) and diesel
+# (passenger and freight); these are used as the light-duty and medium and
+# heavy-duty groups. S20 does not account for EV adoption (p.20), so the BAU
+# emission factors contain no EV share and EV actions count all adoption.
+# ===========================================================================
+
+- id: onroad_vmt_inventory
+  name: On-road vehicle miles travelled (inventory)
+  description: 'S20: gasoline 978,284,636 plus diesel 101,318,961 =
+    1,079,603,597 VMT in 2023 (Table 1, p.11); 1,110,039,495 plus
+    113,818,824 = 1,223,858,319 in 2019 (Table 11, p.25). Method TR.1.A
+    (origin-destination, Google EIE; Table 5, p.20).'
+  type: simple.AdditiveNode
+  quantity: mileage
+  unit: Mmile/a
+  historical_values: [[2019, 1223.858319], [2023, 1079.603597]]
+
+- id: light_duty_vmt_share
+  name: Light-duty share of on-road VMT
+  description: 'Gasoline (passenger vehicles) VMT as a share of on-road VMT,
+    S20 Table 1, p.11 and Table 11, p.25: 90.6152% in 2023, 90.7000% in
+    2019.'
+  type: simple.AdditiveNode
+  quantity: fraction
+  unit: '%'
+  historical_values: [[2019, 90.7000], [2023, 90.6152]]
+
+- id: light_duty_emission_factor
+  name: Light-duty (gasoline) fleet emission factor
+  description: 'Derived from S20: 390,148 t over 978,284,636 VMT = 398.808 g
+    CO2e/mile in 2023 (Table 1, p.11); 461,178 t over 1,110,039,495 VMT =
+    415.461 in 2019 (Table 11, p.25). ASSUMPTION: held at the 2023 value
+    after 2023, which leaves out fleet turnover under federal and state
+    vehicle standards (S20 notes falling vehicle emissions, p.16).'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: g/mile
+  historical_values: [[2019, 415.461], [2023, 398.808]]
+
+- id: medium_heavy_emission_factor
+  name: Medium and heavy-duty (diesel) fleet emission factor
+  description: 'Derived from S20: 145,367 t over 101,318,961 VMT = 1,434.746
+    g CO2e/mile in 2023 (Table 1, p.11); 167,554 t over 113,818,824 VMT =
+    1,472.112 in 2019 (Table 11, p.25). ASSUMPTION: held at the 2023 value.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: g/mile
+  historical_values: [[2019, 1472.112], [2023, 1434.746]]
+
+- id: transit_vmt_inventory
+  name: Transit vehicle miles (inventory)
+  description: 'C-TRAN service attributed to Vancouver (S20, Table 5, p.20):
+    diesel 4,542,253 plus gasoline 30,152 = 4,572,405 VMT in 2023 (Table 1,
+    p.11); 4,655,032 plus 60,030 = 4,715,062 in 2019 (Table 11, p.25).'
+  type: simple.AdditiveNode
+  quantity: mileage
+  unit: Mmile/a
+  historical_values: [[2019, 4.715062], [2023, 4.572405]]
+
+- id: transit_emission_factor
+  name: Transit fleet emission factor
+  description: 'Derived from S20: 7,365 t over 4,572,405 VMT = 1,610.750 g
+    CO2e/mile in 2023 (Table 1, p.11); 8,001 t over 4,715,062 VMT =
+    1,696.902 in 2019 (Table 11, p.25). Held at the 2023 value.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: g/mile
+  historical_values: [[2019, 1696.902], [2023, 1610.750]]
+
+- id: other_transport_emissions_inventory
+  name: Aviation, off-road, marine and rail emissions (inventory)
+  description: 'S20 Table 1, p.11 (2023): aviation 110,404; off-road diesel
+    37,659, gasoline 21,420, LPG 6,600, CNG 692; marine 3,974; rail 1,620;
+    total 182,369 t. Table 11, p.25 (2019): aviation 403,489; off-road
+    55,424; marine 2,189; rail 5,371; total 466,473 t. Most of the aviation
+    drop is a change of method between the two years (S20, p.12 note), not
+    a real reduction.'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  historical_values: [[2019, 466473], [2023, 182369]]
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [other_transport]
+    - id: gpc_sector
+      categories: [transportation]
+
+# ===========================================================================
+# SOLID WASTE (S20, Table 1, p.11; Table 11, p.25; methods p.21)
+# Landfilled at Finley Butte Landfill, Boardman, Oregon. Composting is not
+# calculated in S20 (p.21); USCP v1.2 provides no composting factor
+# (Appendix E, method SW.3, p.21).
+# ===========================================================================
+
+- id: landfilled_waste_inventory
+  name: Landfilled solid waste (inventory)
+  description: 'S20: 128,152 tons in 2023 (Table 1, p.11); 116,943 tons in
+    2019 (Table 11, p.25). US short tons.'
+  type: simple.AdditiveNode
+  quantity: mass
+  unit: short_ton/a
+  historical_values: [[2019, 116943], [2023, 128152]]
+
+- id: landfilled_organics_share
+  name: Organics share of landfilled waste
+  description: 'ILLUSTRATIVE: 30%. S20 uses the Washington Department of
+    Ecology 2020-21 Waste Characterization Study for its waste mix (p.21),
+    but does not state the organics share. Replace with the study''s
+    figure.'
+  type: simple.AdditiveNode
+  quantity: fraction
+  unit: '%'
+  historical_values: [[2019, 30], [2023, 30]]
+
+- id: landfill_emission_factor_organics
+  name: Landfill emission factor, organics
+  description: 'Set equal to the inventory''s mixed-waste factor, derived
+    from S20: 23,634 t over 128,152 tons = 0.184422 t CO2e per short ton in
+    2023 (Table 1, p.11); 26,373 t over 116,943 tons = 0.225520 in 2019
+    (Table 11, p.25). Using the mixed factor for organics understates the
+    benefit of organics diversion; S20 does not give a factor by material.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: t/short_ton
+  historical_values: [[2019, 0.225520], [2023, 0.184422]]
+
+- id: landfill_emission_factor_other
+  name: Landfill emission factor, other materials
+  description: 'Same mixed-waste factor as for organics (derived from S20,
+    Table 1, p.11 and Table 11, p.25), so the two together reproduce the
+    inventory''s landfill emissions exactly.'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: t/short_ton
+  historical_values: [[2019, 0.225520], [2023, 0.184422]]
+
+- id: compost_emission_factor
+  name: Composting emission factor
+  description: 'Zero, consistent with both sources: S20 does not calculate
+    composting emissions (p.21), and USCP v1.2 Appendix E provides no
+    composting factor (method SW.3, p.21).'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: t/short_ton
+  historical_values: [[2019, 0], [2023, 0]]
+
+# ===========================================================================
+# WATER AND WASTEWATER (S20, Table 1, p.11; Table 11, p.25)
+# ===========================================================================
+
+- id: water_wastewater_electricity_use_inventory
+  name: Water and wastewater electricity use (inventory)
+  description: 'S20: water treatment 21,800,000 kWh plus wastewater
+    treatment 17,664,192 kWh = 39,464,192 kWh in 2023 (Table 1, p.11);
+    19,614,585 plus 14,763,395 = 34,377,980 kWh in 2019 (Table 11, p.25).'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: MWh/a
+  historical_values: [[2019, 34377.980], [2023, 39464.192]]
+
+- id: water_wastewater_natural_gas_use_inventory
+  name: Water and wastewater natural gas use (inventory)
+  description: 'S20: 3,960 therms in 2023 (Table 1, p.11); 3,590 therms in
+    2019 (Table 11, p.25).'
+  type: simple.AdditiveNode
+  quantity: energy
+  unit: therm/a
+  historical_values: [[2019, 3590], [2023, 3960]]
+
+- id: wastewater_process_emissions_inventory
+  name: Wastewater process emissions (inventory)
+  description: 'S20: wastewater treatment 205, nitrogen discharge 956 and
+    combustion of biosolids 1,866 = 3,027 t in 2023 (Table 1, p.11); 193 +
+    808 + 1,570 = 2,571 t in 2019 (Table 11, p.25).'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  historical_values: [[2019, 2571], [2023, 3027]]
+
+# ===========================================================================
+# PROCESS, FUGITIVE, UPSTREAM, AGRICULTURE, FORESTS
+# ===========================================================================
+
+- id: industrial_process_emissions_inventory
+  name: Refrigerant (HFC and PFC) emissions (inventory)
+  description: 'S20: process emissions from refrigerant use (HFCs and PFCs),
+    130,084 t in 2023 (Table 1, p.11) and 106,248 t in 2019 (Table 11,
+    p.25); national data scaled by population (Table 9, p.22).'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  historical_values: [[2019, 106248], [2023, 130084]]
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [process_fugitive]
+    - id: gpc_sector
+      categories: [ippu]
+
+- id: fugitive_emissions_inventory
+  name: Natural gas distribution leakage (inventory)
+  description: 'S20: fugitive emissions from natural gas distribution, 8,350
+    t in 2023 (Table 1, p.11) and 6,127 t in 2019 (Table 11, p.25).'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  historical_values: [[2019, 6127], [2023, 8350]]
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [process_fugitive]
+    - id: gpc_sector
+      categories: [stationary_energy]
+
+- id: electricity_transmission_loss_share
+  name: Transmission and distribution losses as share of electricity emissions
+  description: 'Derived from S20: electric power transmission losses 15,066
+    t in 2023 over 295,407 t of electricity emissions (all sectors and water
+    and wastewater) = 5.1001% (Table 1, p.11); 15,181 t over 316,271 t =
+    4.8000% in 2019 (Table 11, p.25). S20 applies the eGRID Western grid
+    gross loss rate (Table 9, p.22).'
+  type: simple.AdditiveNode
+  quantity: fraction
+  unit: '%'
+  historical_values: [[2019, 4.8000], [2023, 5.1001]]
+
+- id: livestock_emissions_inventory
+  name: Livestock emissions (inventory)
+  description: 'Zero: agriculture is not among the activities in S20 (p.9).'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  historical_values: [[2019, 0], [2023, 0]]
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [agriculture]
+    - id: gpc_sector
+      categories: [afolu]
+
+- id: forest_net_flux_inventory
+  name: Forest land net flux (inventory)
+  description: 'Zero: S20 does not include forests or trees; the City notes
+    that its tree planting is not represented in the inventory (p.18).'
+  type: simple.AdditiveNode
+  quantity: emissions
+  unit: t/a
+  historical_values: [[2019, 0], [2023, 0]]
+  output_nodes:
+  - id: net_emissions
+    to_dimensions:
+    - id: uscp_category
+      categories: [forest_trees]
+    - id: gpc_sector
+      categories: [afolu]
+
+- id: urban_tree_canopy_area_inventory
+  name: Urban tree canopy area counted (inventory)
+  description: 'Zero, matching the inventory, which does not count trees
+    (S20, p.18). Only canopy added by the expansion action is counted.'
+  type: simple.AdditiveNode
+  quantity: area
+  unit: ha
+  historical_values: [[2019, 0], [2023, 0]]
+
+- id: urban_tree_removal_factor
+  name: Urban tree carbon removal factor
+  description: 'ILLUSTRATIVE: -3.0 tC per hectare per year x 44/12 = -11.0 t
+    CO2e/ha/a. This is the removal factor of a hypothetical county in USCP
+    v1.2 Appendix J, sample calculation 5 (p.41), not a default for
+    Vancouver; Appendix J points to regional look-up tables (p.40).'
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: t/ha/a
+  historical_values: [[2019, -11.0], [2023, -11.0]]
+
+# ===========================================================================
+# ACTIONS: illustrative placeholder trajectories for the demo
+# ===========================================================================
+
+actions:
+
+- id: clean_electricity_procurement
+  name: 'Clean electricity procurement'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Community choice aggregation, utility green tariffs or similar programmes that supply community electricity from zero-carbon sources beyond the grid''s BAU trajectory. Causal path: reduces the electricity emission factor used for all community electricity, including electricity added by electrification and EV charging. Parameter: additional zero-carbon share of community electricity (%), by year. Default: none, no cited source yet. Overlaps: local solar reduces the electricity bought first; this share then applies to the rest. The grid trajectory must not already include this procurement.'
+  type: simple.AdditiveAction
+  group: electricity
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 20.0], [2040, 50.0], [2045, 50.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: residential_local_solar
+  name: 'Residential rooftop and community solar'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: New rooftop solar on homes and community solar subscribed by households, beyond what is installed in the inventory year. Causal path: subtracted from residential electricity use, after efficiency and electrification; the result cannot go below zero. Parameter: additional annual generation (MWh/a), by year. Default: none, no cited source yet. Overlaps: clean electricity procurement applies only to the electricity still bought.'
+  type: simple.AdditiveAction
+  group: electricity
+  quantity: energy
+  unit: 'MWh/a'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 20000.0], [2040, 60000.0], [2045, 60000.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: commercial_local_solar
+  name: 'Commercial rooftop and community solar'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: As residential local solar, for commercial, institutional and municipal buildings. Causal path: subtracted from commercial electricity use. Parameter: additional annual generation (MWh/a), by year. Default: none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: electricity
+  quantity: energy
+  unit: 'MWh/a'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 15000.0], [2040, 40000.0], [2045, 40000.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: residential_efficiency_retrofits
+  name: 'Residential energy efficiency retrofits'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Weatherisation, insulation and equipment upgrades in existing homes. Causal path: reduces residential electricity, natural gas and other fuel use by the same share. Parameter: community-wide reduction in residential energy use (%), by year, i.e. homes retrofitted times savings per home. Default: none, no cited source yet. Overlaps: applied before electrification, so electrification acts on the gas left after retrofits.'
+  type: simple.AdditiveAction
+  group: buildings
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 5.0], [2040, 15.0], [2045, 15.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: commercial_efficiency_retrofits
+  name: 'Commercial energy efficiency retrofits'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Efficiency programmes in existing commercial, institutional and municipal buildings. Causal path: reduces commercial electricity, natural gas and other fuel use by the same share. Parameter: community-wide reduction in commercial energy use (%), by year. Default: none, no cited source yet. Overlaps: the building performance standard applies to what retrofits leave; enter only programme savings that the standard would not have required.'
+  type: simple.AdditiveAction
+  group: buildings
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 5.0], [2040, 12.0], [2045, 12.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: building_performance_standard
+  name: 'Building performance standard'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: An energy or emissions performance standard for large existing commercial buildings. Causal path: reduces commercial electricity, natural gas and other fuel use, after retrofits. Parameter: reduction in total commercial energy use (%), by year, i.e. covered floor area share times required improvement. Default: none, no cited source yet. Overlaps: multiplied after retrofits; if the standard is met partly by electrification, enter that part under commercial electrification instead.'
+  type: simple.AdditiveAction
+  group: buildings
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 5.0], [2040, 15.0], [2045, 15.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: residential_electrification
+  name: 'Residential building electrification'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Replacing gas furnaces, water heaters and appliances in existing homes with heat pumps and electric appliances. Causal path: reduces residential natural gas use after efficiency; the displaced gas is converted to electricity with the electricity-per-therm factor and added to residential electricity use. Parameter: share of remaining residential gas use displaced (%), by year. Default: none, no cited source yet. Overlaps: all-electric new construction applies to the gas left after this.'
+  type: simple.AdditiveAction
+  group: buildings
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 15.0], [2040, 60.0], [2045, 60.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: commercial_electrification
+  name: 'Commercial building electrification'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: As residential electrification, for commercial buildings. Causal path: reduces commercial natural gas use after efficiency and adds the equivalent electricity. Parameter: share of remaining commercial gas use displaced (%), by year. Default: none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: buildings
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 10.0], [2040, 50.0], [2045, 50.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: residential_all_electric_new_construction
+  name: 'All-electric new homes (building code)'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: A code or reach code requiring new homes to be all-electric. Causal path: reduces residential natural gas use by the share that new homes would otherwise have added; the displaced gas becomes electricity. Parameter: share of residential gas use avoided (%), by year, i.e. cumulative new homes as a share of the stock times their gas use relative to the average home. Default: none, no cited source yet. Overlaps: applied after electrification of existing homes, so the two cannot exceed the gas that exists.'
+  type: simple.AdditiveAction
+  group: buildings
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 5.0], [2040, 15.0], [2045, 15.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: commercial_all_electric_new_construction
+  name: 'All-electric new commercial buildings (building code)'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: As all-electric new homes, for commercial buildings. Parameter: share of commercial gas use avoided (%), by year. Default: none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: buildings
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 3.0], [2040, 10.0], [2045, 10.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: active_transport_mode_shift
+  name: 'Active transport (walking and cycling) mode shift'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Bike lanes, sidewalks and other measures that move trips from cars to walking and cycling. Causal path: reduces light-duty VMT. Parameter: reduction in light-duty VMT (%), by year. Default: none, no cited source yet. Overlaps: transit and land-use reductions apply to the VMT left after this; EV adoption applies to the VMT left after all three.'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 3.0], [2040, 8.0], [2045, 8.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: transit_service_expansion
+  name: 'Transit service expansion'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: More frequent or extended transit service that moves trips from cars to transit. Causal path: reduces light-duty VMT. Parameter: reduction in light-duty VMT (%), by year. Default: none, no cited source yet. Limitation: emissions from the added transit service are not modelled in v1 (README, Q9).'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 2.0], [2040, 5.0], [2045, 5.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: land_use_vmt_reduction
+  name: 'VMT reduction through land use'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Infill, mixed-use and transit-oriented development that shortens or removes car trips. Causal path: reduces light-duty VMT. Parameter: reduction in light-duty VMT (%), by year. Default: none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 3.0], [2040, 10.0], [2045, 10.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: light_duty_ev_adoption
+  name: 'Light-duty electric vehicle adoption'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Incentives and programmes that increase electric car and light truck use. Causal path: moves a share of the light-duty VMT left after demand actions from combustion to electric vehicles; the electric miles are charged at the model electricity emission factor. Parameter: share of light-duty VMT electrified beyond the BAU fleet forecast (%), by year. Default: none, no cited source yet. Overlaps: if the BAU light-duty emission factor already reflects state vehicle rules, enter only adoption beyond them.'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 15.0], [2040, 60.0], [2045, 60.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: public_charging_buildout
+  name: 'Public EV charging buildout'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Public charging infrastructure. Causal path: electrifies a further share of the light-duty VMT not already electrified by EV adoption. Parameter: additional share of light-duty VMT electrified because of the charging buildout (%), by year. Default: none, no cited source yet. Overlaps: leave at zero if the city''s EV adoption figure already assumes the charging buildout.'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 3.0], [2040, 10.0], [2045, 10.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: municipal_fleet_electrification
+  name: 'Municipal fleet electrification'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Replacing municipal light-duty vehicles with electric ones. Causal path: electrifies a further share of community light-duty VMT. Parameter: municipal fleet share of community light-duty VMT times the share of that fleet electrified (%), by year. Default: none, no cited source yet. Overlaps: combined with EV adoption as a sequential factor, so the fleet is not counted twice.'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 0.5], [2040, 1.0], [2045, 1.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: medium_heavy_zev_adoption
+  name: 'Medium and heavy-duty zero-emission vehicles'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Programmes and rules that move delivery vans, trucks and other medium and heavy-duty vehicles to zero-emission models. Causal path: electrifies a share of medium and heavy-duty VMT. Parameter: share of medium and heavy-duty VMT electrified beyond the BAU forecast (%), by year. Default: none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 5.0], [2040, 40.0], [2045, 40.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: transit_fleet_electrification
+  name: 'Transit bus fleet electrification'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Replacing diesel and gas transit buses with battery or fuel cell electric buses. Causal path: moves a share of transit vehicle miles to zero-emission buses, charged at the model electricity emission factor. Parameter: share of transit vehicle miles electrified (%), by year. Default: none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 30.0], [2040, 100.0], [2045, 100.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: organics_diversion
+  name: 'Organics diversion and composting'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Collecting food and yard waste for composting or anaerobic digestion instead of landfill. Causal path: reduces landfilled organics; the diverted tonnes are counted at the composting emission factor. Parameter: share of landfilled organics diverted (%), by year. Default: none, no cited source yet. Overlaps: landfill gas capture applies to the organics still landfilled.'
+  type: simple.AdditiveAction
+  group: waste
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 30.0], [2040, 70.0], [2045, 70.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: landfill_gas_capture
+  name: 'Landfill gas capture improvement'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Better gas collection at the landfill receiving community waste. Causal path: reduces landfill emissions from both organics and other materials. Parameter: reduction in landfill emissions (%), by year, i.e. the increase in collection efficiency divided by the share of gas not collected in the inventory year. Default: none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: waste
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 10.0], [2040, 20.0], [2045, 20.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: recycling_increase
+  name: 'Recycling rate increase'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Diverting paper, plastics, metals and glass from landfill. Causal path: reduces landfilled other materials. Parameter: share of landfilled other materials diverted (%), by year. Default: none, no cited source yet. Limitation: upstream benefits of recycled materials are outside the inventory and not counted.'
+  type: simple.AdditiveAction
+  group: waste
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 10.0], [2040, 25.0], [2045, 25.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: water_treatment_energy_efficiency
+  name: 'Water and wastewater treatment energy efficiency'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Efficient pumps, aeration and controls at water and wastewater facilities. Causal path: reduces water and wastewater electricity and natural gas use. Parameter: reduction in utility energy use (%), by year. Default: none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: water
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 10.0], [2040, 20.0], [2045, 20.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: wastewater_process_reduction
+  name: 'Wastewater process emissions reduction'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Process changes such as improved nitrogen removal or biogas capture that cut methane and nitrous oxide from treatment. Causal path: reduces wastewater process emissions. Parameter: reduction in process emissions (%), by year. Default: none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: water
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 10.0], [2040, 30.0], [2045, 30.0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: urban_tree_canopy_expansion
+  name: 'Urban tree canopy expansion'
+  description: 'ILLUSTRATIVE PLACEHOLDER for the sales demo: the trajectory below is not a published value and not a City of Vancouver commitment. Replace with cited figures from the Climate Action Framework before any external use. Template description: Tree planting and protection that grows canopy outside forest land. Causal path: adds canopy area, which removes carbon at the urban tree removal factor. Parameter: canopy area added since the inventory year (ha), by year. Default: none, no cited source yet. Limitation: young trees remove less carbon than mature canopy; v1 uses one removal factor.'
+  type: simple.AdditiveAction
+  group: land_use
+  quantity: area
+  unit: 'ha'
+  historical_values: [[1990, 0.0], [2023, 0.0]]
+  forecast_values: [[2024, 0.0], [2030, 100.0], [2040, 300.0], [2045, 300.0]]
+  input_dataset_processors: [LinearInterpolation]
+pages:
+- id: home
+  name: Vancouver, WA community greenhouse gas emissions
+  path: /
+  type: emission
+  outcome_node: net_emissions
+  lead_title: Community greenhouse gas emissions, inventory and outlook
+  lead_paragraph: 'Demonstration model built by Kausal from the City of
+    Vancouver''s published 2023 community greenhouse gas inventory, which
+    follows the ICLEI U.S. Community Protocol. Results can be viewed in the
+    inventory''s own categories or by GPC sector. Action effects are
+    illustrative placeholders, not City commitments.'
+
+scenarios:
+- id: baseline
+  name: Business as usual
+- id: default
+  default: true
+  name: Illustrative climate action scenario
+  all_actions_enabled: true
