@@ -158,8 +158,9 @@ nodes:
   - id: residential_efficiency_retrofits
     tags: [complement]
   - id: residential_electricity_from_electrification
+    tags: [additive]
   - id: residential_local_solar
-    tags: [forecast_only, truncate_beyond_end, arithmetic_inverse]
+    tags: [additive, forecast_only, truncate_beyond_end, arithmetic_inverse]
   output_nodes:
   - id: electricity_use
     tags: [make_nonnegative]
@@ -282,8 +283,9 @@ nodes:
   - id: building_performance_standard
     tags: [complement]
   - id: commercial_electricity_from_electrification
+    tags: [additive]
   - id: commercial_local_solar
-    tags: [forecast_only, truncate_beyond_end, arithmetic_inverse]
+    tags: [additive, forecast_only, truncate_beyond_end, arithmetic_inverse]
   output_nodes:
   - id: electricity_use
     tags: [make_nonnegative]

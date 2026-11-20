@@ -176,7 +176,7 @@ actions:
 
 1. Decide which activity or emission factor the action changes. If none fits, add the activity to `inventory.yaml` first; an action should never create emissions outside the inventory categories.
 2. Express its effect as either a share of that activity (unit `%`) or an absolute amount in the activity's unit.
-3. A share enters the activity's `MultiplicativeNode` as an input with `tags: [complement]`, listed after the activity itself (the first input sets the years). An absolute amount enters as an added input with `tags: [forecast_only, truncate_beyond_end]`: adding takes the union of years and fills gaps with zero, so without these tags the action's series would write zeros into years without inventory data.
+3. A share enters the activity's `MultiplicativeNode` as an input with `tags: [complement]`, listed after the activity itself (the first input sets the years). An absolute amount enters as an added input with `tags: [additive, forecast_only, truncate_beyond_end]` (Kausal Paths requires the explicit `additive` tag on any input of a multiplicative node whose unit matches the node's own; otherwise the input is not added): adding takes the union of years and fills gaps with zero, so without these tags the action's series would write zeros into years without inventory data.
 4. Decide its order relative to other actions on the same activity and document the overlap (next section).
 5. Ship it with `historical_values: [[1990, 0], [2100, 0]]` until a cited default exists, add its parameter to the table above and its sources to `sources.csv`.
 
