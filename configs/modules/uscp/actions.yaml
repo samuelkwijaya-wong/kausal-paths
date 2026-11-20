@@ -1,0 +1,431 @@
+# ===========================================================================
+# Kausal Paths model template for US communities: action library
+# ===========================================================================
+#
+# Each action changes one activity or emission factor in inventory.yaml,
+# so its effect appears in the same USCP inventory categories (and GPC
+# sectors) as the inventory itself.
+#
+# PARAMETERS AND DEFAULTS
+# Every action is driven by a time series of its key parameter (for example
+# the share of light-duty VMT moved to electric vehicles, by year). That one
+# series encodes the adoption rate, start year and target year. No default
+# value has a citation yet, so every action ships with a ZERO-EFFECT series:
+#   historical_values: [[1990, 0], [2100, 0]]
+# Zero here means "not parameterised", not a recommended value. The series
+# is flagged historical on purpose: Kausal Paths combines forecast flags
+# with OR when it joins series, so a forecast-flagged neutral series would
+# relabel the inventory year as forecast. Where an action is ADDED rather
+# than multiplied (local solar, tree canopy), the receiving edge carries
+# forecast_only and truncate_beyond_end: adding takes the union of years and
+# fills gaps with zero, so a series covering every year would write zeros
+# into years with no inventory (for example between two inventory years).
+# With forecast_only the neutral, all-historical series adds nothing.
+# To parameterise an action, the instance overrides it with the city's
+# trajectory and a citation for each number, keeping zeros up to the
+# inventory year, for example:
+#   historical_values: [[1990, 0], [2022, 0]]
+#   forecast_values: [[2025, 0], [2030, 20], [2100, 20]]
+# See README.md for the parameter table, sources still needed, and the
+# instance pattern.
+#
+# DOUBLE COUNTING
+# Actions on the same activity enter it as sequential (1 - x) factors
+# (edge tag complement on a multiplicative node), never as added
+# reductions. Each factor acts on what the previous ones left, so overlap
+# cannot remove more than the underlying activity. The order and the
+# meaning of each parameter are documented on the action and in the README.
+#
+# Required from the including instance: action_groups with the ids
+# electricity, buildings, transportation, waste, water, land_use.
+# Cost parameters are listed in the README but not yet wired (open question
+# Q8).
+# ===========================================================================
+
+actions:
+
+# ===========================================================================
+# ELECTRICITY
+# ===========================================================================
+
+- id: clean_electricity_procurement
+  name: Clean electricity procurement
+  description: 'Community choice aggregation, utility green tariffs or
+    similar programmes that supply community electricity from zero-carbon
+    sources beyond the grid''s BAU trajectory. Causal path: reduces the
+    electricity emission factor used for all community electricity,
+    including electricity added by electrification and EV charging.
+    Parameter: additional zero-carbon share of community electricity (%),
+    by year. Default: none, no cited source yet. Overlaps: local solar
+    reduces the electricity bought first; this share then applies to the
+    rest. The grid trajectory must not already include this procurement.'
+  type: simple.AdditiveAction
+  group: electricity
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: residential_local_solar
+  name: Residential rooftop and community solar
+  description: 'New rooftop solar on homes and community solar subscribed by
+    households, beyond what is installed in the inventory year. Causal path:
+    subtracted from residential electricity use, after efficiency and
+    electrification; the result cannot go below zero. Parameter: additional
+    annual generation (MWh/a), by year. Default: none, no cited source yet.
+    Overlaps: clean electricity procurement applies only to the electricity
+    still bought.'
+  type: simple.AdditiveAction
+  group: electricity
+  quantity: energy
+  unit: MWh/a
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: commercial_local_solar
+  name: Commercial rooftop and community solar
+  description: 'As residential local solar, for commercial, institutional
+    and municipal buildings. Causal path: subtracted from commercial
+    electricity use. Parameter: additional annual generation (MWh/a), by
+    year. Default: none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: electricity
+  quantity: energy
+  unit: MWh/a
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+# ===========================================================================
+# BUILDINGS
+# Order on each sector: retrofits, then building performance standard, then
+# electrification and all-electric new construction on the remaining gas.
+# ===========================================================================
+
+- id: residential_efficiency_retrofits
+  name: Residential energy efficiency retrofits
+  description: 'Weatherisation, insulation and equipment upgrades in
+    existing homes. Causal path: reduces residential electricity, natural
+    gas and other fuel use by the same share. Parameter: community-wide
+    reduction in residential energy use (%), by year, i.e. homes retrofitted
+    times savings per home. Default: none, no cited source yet. Overlaps:
+    applied before electrification, so electrification acts on the gas left
+    after retrofits.'
+  type: simple.AdditiveAction
+  group: buildings
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: commercial_efficiency_retrofits
+  name: Commercial energy efficiency retrofits
+  description: 'Efficiency programmes in existing commercial, institutional
+    and municipal buildings. Causal path: reduces commercial electricity,
+    natural gas and other fuel use by the same share. Parameter:
+    community-wide reduction in commercial energy use (%), by year.
+    Default: none, no cited source yet. Overlaps: the building performance
+    standard applies to what retrofits leave; enter only programme savings
+    that the standard would not have required.'
+  type: simple.AdditiveAction
+  group: buildings
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: building_performance_standard
+  name: Building performance standard
+  description: 'An energy or emissions performance standard for large
+    existing commercial buildings. Causal path: reduces commercial
+    electricity, natural gas and other fuel use, after retrofits.
+    Parameter: reduction in total commercial energy use (%), by year, i.e.
+    covered floor area share times required improvement. Default: none, no
+    cited source yet. Overlaps: multiplied after retrofits; if the standard
+    is met partly by electrification, enter that part under commercial
+    electrification instead.'
+  type: simple.AdditiveAction
+  group: buildings
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: residential_electrification
+  name: Residential building electrification
+  description: 'Replacing gas furnaces, water heaters and appliances in
+    existing homes with heat pumps and electric appliances. Causal path:
+    reduces residential natural gas use after efficiency; the displaced gas
+    is converted to electricity with the electricity-per-therm factor and
+    added to residential electricity use. Parameter: share of remaining
+    residential gas use displaced (%), by year. Default: none, no cited
+    source yet. Overlaps: all-electric new construction applies to the gas
+    left after this.'
+  type: simple.AdditiveAction
+  group: buildings
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: commercial_electrification
+  name: Commercial building electrification
+  description: 'As residential electrification, for commercial buildings.
+    Causal path: reduces commercial natural gas use after efficiency and
+    adds the equivalent electricity. Parameter: share of remaining
+    commercial gas use displaced (%), by year. Default: none, no cited
+    source yet.'
+  type: simple.AdditiveAction
+  group: buildings
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: residential_all_electric_new_construction
+  name: All-electric new homes (building code)
+  description: 'A code or reach code requiring new homes to be all-electric.
+    Causal path: reduces residential natural gas use by the share that new
+    homes would otherwise have added; the displaced gas becomes
+    electricity. Parameter: share of residential gas use avoided (%), by
+    year, i.e. cumulative new homes as a share of the stock times their
+    gas use relative to the average home. Default: none, no cited source
+    yet. Overlaps: applied after electrification of existing homes, so the
+    two cannot exceed the gas that exists.'
+  type: simple.AdditiveAction
+  group: buildings
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: commercial_all_electric_new_construction
+  name: All-electric new commercial buildings (building code)
+  description: 'As all-electric new homes, for commercial buildings.
+    Parameter: share of commercial gas use avoided (%), by year. Default:
+    none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: buildings
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+# ===========================================================================
+# TRANSPORTATION
+# Demand actions first (on light-duty VMT), then electrification actions on
+# the VMT that remains.
+# ===========================================================================
+
+- id: active_transport_mode_shift
+  name: Active transport (walking and cycling) mode shift
+  description: 'Bike lanes, sidewalks and other measures that move trips
+    from cars to walking and cycling. Causal path: reduces light-duty VMT.
+    Parameter: reduction in light-duty VMT (%), by year. Default: none, no
+    cited source yet. Overlaps: transit and land-use reductions apply to
+    the VMT left after this; EV adoption applies to the VMT left after all
+    three.'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: transit_service_expansion
+  name: Transit service expansion
+  description: 'More frequent or extended transit service that moves trips
+    from cars to transit. Causal path: reduces light-duty VMT. Parameter:
+    reduction in light-duty VMT (%), by year. Default: none, no cited
+    source yet. Limitation: emissions from the added transit service are
+    not modelled in v1 (README, Q9).'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: land_use_vmt_reduction
+  name: VMT reduction through land use
+  description: 'Infill, mixed-use and transit-oriented development that
+    shortens or removes car trips. Causal path: reduces light-duty VMT.
+    Parameter: reduction in light-duty VMT (%), by year. Default: none, no
+    cited source yet.'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: light_duty_ev_adoption
+  name: Light-duty electric vehicle adoption
+  description: 'Incentives and programmes that increase electric car and
+    light truck use. Causal path: moves a share of the light-duty VMT left
+    after demand actions from combustion to electric vehicles; the electric
+    miles are charged at the model electricity emission factor. Parameter:
+    share of light-duty VMT electrified beyond the BAU fleet forecast (%),
+    by year. Default: none, no cited source yet. Overlaps: if the BAU
+    light-duty emission factor already reflects state vehicle rules, enter
+    only adoption beyond them.'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: public_charging_buildout
+  name: Public EV charging buildout
+  description: 'Public charging infrastructure. Causal path: electrifies a
+    further share of the light-duty VMT not already electrified by EV
+    adoption. Parameter: additional share of light-duty VMT electrified
+    because of the charging buildout (%), by year. Default: none, no cited
+    source yet. Overlaps: leave at zero if the city''s EV adoption figure
+    already assumes the charging buildout.'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: municipal_fleet_electrification
+  name: Municipal fleet electrification
+  description: 'Replacing municipal light-duty vehicles with electric ones.
+    Causal path: electrifies a further share of community light-duty VMT.
+    Parameter: municipal fleet share of community light-duty VMT times the
+    share of that fleet electrified (%), by year. Default: none, no cited
+    source yet. Overlaps: combined with EV adoption as a sequential factor,
+    so the fleet is not counted twice.'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: medium_heavy_zev_adoption
+  name: Medium and heavy-duty zero-emission vehicles
+  description: 'Programmes and rules that move delivery vans, trucks and
+    other medium and heavy-duty vehicles to zero-emission models. Causal
+    path: electrifies a share of medium and heavy-duty VMT. Parameter:
+    share of medium and heavy-duty VMT electrified beyond the BAU forecast
+    (%), by year. Default: none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: transit_fleet_electrification
+  name: Transit bus fleet electrification
+  description: 'Replacing diesel and gas transit buses with battery or fuel
+    cell electric buses. Causal path: moves a share of transit vehicle
+    miles to zero-emission buses, charged at the model electricity emission
+    factor. Parameter: share of transit vehicle miles electrified (%), by
+    year. Default: none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: transportation
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+# ===========================================================================
+# WASTE
+# ===========================================================================
+
+- id: organics_diversion
+  name: Organics diversion and composting
+  description: 'Collecting food and yard waste for composting or anaerobic
+    digestion instead of landfill. Causal path: reduces landfilled organics;
+    the diverted tonnes are counted at the composting emission factor.
+    Parameter: share of landfilled organics diverted (%), by year. Default:
+    none, no cited source yet. Overlaps: landfill gas capture applies to
+    the organics still landfilled.'
+  type: simple.AdditiveAction
+  group: waste
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: landfill_gas_capture
+  name: Landfill gas capture improvement
+  description: 'Better gas collection at the landfill receiving community
+    waste. Causal path: reduces landfill emissions from both organics and
+    other materials. Parameter: reduction in landfill emissions (%), by
+    year, i.e. the increase in collection efficiency divided by the share
+    of gas not collected in the inventory year. Default: none, no cited
+    source yet.'
+  type: simple.AdditiveAction
+  group: waste
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: recycling_increase
+  name: Recycling rate increase
+  description: 'Diverting paper, plastics, metals and glass from landfill.
+    Causal path: reduces landfilled other materials. Parameter: share of
+    landfilled other materials diverted (%), by year. Default: none, no
+    cited source yet. Limitation: upstream benefits of recycled materials
+    are outside the inventory and not counted.'
+  type: simple.AdditiveAction
+  group: waste
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+# ===========================================================================
+# WATER AND WASTEWATER
+# ===========================================================================
+
+- id: water_treatment_energy_efficiency
+  name: Water and wastewater treatment energy efficiency
+  description: 'Efficient pumps, aeration and controls at water and
+    wastewater facilities. Causal path: reduces water and wastewater
+    electricity and natural gas use. Parameter: reduction in utility energy
+    use (%), by year. Default: none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: water
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+- id: wastewater_process_reduction
+  name: Wastewater process emissions reduction
+  description: 'Process changes such as improved nitrogen removal or biogas
+    capture that cut methane and nitrous oxide from treatment. Causal path:
+    reduces wastewater process emissions. Parameter: reduction in process
+    emissions (%), by year. Default: none, no cited source yet.'
+  type: simple.AdditiveAction
+  group: water
+  quantity: fraction
+  unit: '%'
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
+
+# ===========================================================================
+# LAND USE
+# ===========================================================================
+
+- id: urban_tree_canopy_expansion
+  name: Urban tree canopy expansion
+  description: 'Tree planting and protection that grows canopy outside
+    forest land. Causal path: adds canopy area, which removes carbon at the
+    urban tree removal factor. Parameter: canopy area added since the
+    inventory year (ha), by year. Default: none, no cited source yet.
+    Limitation: young trees remove less carbon than mature canopy; v1 uses
+    one removal factor.'
+  type: simple.AdditiveAction
+  group: land_use
+  quantity: area
+  unit: ha
+  historical_values: [[1990, 0], [2100, 0]]
+  input_dataset_processors: [LinearInterpolation]
