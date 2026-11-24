@@ -17,7 +17,6 @@ import pandas as pd
 import pint_pandas
 from polars.datatypes.group import INTEGER_DTYPES, NUMERIC_DTYPES
 from rich import print as pprint
-from sentry_sdk.consts import SPANSTATUS
 
 from kausal_common.deployment import env_bool
 from kausal_common.i18n.pydantic import get_modeltrans_attrs_from_str
@@ -27,7 +26,7 @@ from paths.identifiers import validate_identifier
 
 from common import polars as ppl
 from common.utils import hash_unit
-from datasets.runtime import JSONDataset
+from datasets.runtime import Dataset, JSONDataset
 from nodes.constants import (
     DEFAULT_METRIC,
     FORECAST_COLUMN,
@@ -40,13 +39,14 @@ from nodes.constants import (
 )
 from nodes.constraints.port_roles import PortRoleInferenceResult
 from nodes.defs.binding_def import DatasetBindingDef, EdgeBindingDef
-from nodes.defs.transform_def import FlattenTransformation
+from nodes.defs.transform_def import FilterColumnOp, FlattenTransformation
 from nodes.goals import NodeGoals
 from nodes.hooks import apply_hooks
+from nodes.kept_categories import KEEP_CATEGORIES_TAG, describe_dropped, dropped_rows
 from nodes.metric import DimensionalMetric
 from nodes.pipeline.compare import compare_node_with_lowered_pipeline
 from nodes.runtime_input import RuntimeInputPort
-from nodes.transforms import PipelineEnv, apply_port_transformations
+from nodes.transforms import PipelineEnv, apply_port_transformations, filter_column_criterion
 from params.base import ParameterWithUnit
 
 from .debug import plot_node_output, print_node_output
@@ -62,14 +62,13 @@ if typing.TYPE_CHECKING:
 
     import loguru
     from rich.repr import RichReprResult
-    from sentry_sdk.tracing import Span
+    from sentry_sdk.traces import Span
 
     from kausal_common.i18n.pydantic import I18nString, I18nStringInstance, TranslatedString
 
     from paths.identifiers import MixedCaseIdentifier, NodeIdentifier
 
     from common.cache import CacheResult
-    from datasets.runtime import Dataset
     from nodes.constraints.rules import AnyShapeRule
     from nodes.defs.binding_def import AnyPortBindingDef
     from nodes.defs.node_defs import NodeKind, NodeSpec
@@ -356,6 +355,13 @@ class Node:
     default_unit: ClassVar[str]
     'Default unit for the node class (defined as a class variable)'
 
+    dataset_ports_take_output_unit: ClassVar[bool] = True
+    """Whether a dataset input port declared in YAML without a unit takes the node's output unit.
+
+    Off for a class that reads only whether its inputs have values, not what they are: its ports
+    then have no unit and accept any.
+    """
+
     interpolates_input_datasets_by_default: ClassVar[bool] = False
     """Whether a dataset bound to this class has year gaps filled unless the binding opts out.
 
@@ -464,6 +470,12 @@ class Node:
 
     status_errors: list[NodeStatusError]
     'Structured problems recorded at this node (own errors only, not inherited cascades).'
+
+    failure_origins: list[Node]
+    """
+    Upstream nodes whose own failure this node inherits, in the order met: the root of a cascade
+    that failed this node, or an input a tolerant node computed without. Empty for an own failure.
+    """
 
     tags: set[str]
     'Tags to differentiate between multiple input/output nodes'
@@ -726,6 +738,7 @@ class Node:
         self.tags = set()
         self.status = None
         self.status_errors = []
+        self.failure_origins = []
 
         kls = type(self)
         self.logger = context.log.bind(node=self.id, node_class='%s.%s' % (kls.__module__, kls.__qualname__))
@@ -1080,6 +1093,27 @@ class Node:
             if isinstance(error, NodeError):
                 wrapped.event_chain = [*error.event_chain, *wrapped.event_chain]
             raise wrapped from error
+
+    def _note_unmatched_filters(self) -> None:
+        """
+        Record in the node's status each input that a filter allowed to match nothing left empty.
+
+        The node computes on with the input empty, and the editor shows why it is empty. This
+        runs after the computation rather than where inputs are read, because node classes read
+        their datasets by several routes.
+        """
+        for binding in self.runtime_input_bindings:
+            dataset = binding.source
+            if not isinstance(dataset, Dataset):
+                continue
+            permissive = [op for op in dataset.transformations if isinstance(op, FilterColumnOp) and op.allow_no_match]
+            if not permissive or not dataset.get_copy().is_empty():
+                continue
+            criteria = ' and '.join(f"'{op.column}' = {filter_column_criterion(op, self.context)}" for op in permissive)
+            message = f"Dataset '{dataset.id}' has no rows for {criteria}, so this input is empty and counts as zero."
+            if any(error.message == message for error in self.status_errors):
+                continue
+            self.mark_status(NodeStatus.DEGRADED, NodeStatusError(phase=NodeErrorPhase.COMPUTATION, message=message))
 
     def iter_inputs(self, port: InputPortDeclaration) -> Iterator[ppl.PathsDataFrame]:
         """Yield every value bound to a semantic input role in stable binding order."""
@@ -1448,6 +1482,22 @@ class Node:
         if self.status is None or _NODE_STATUS_SEVERITY[status] > _NODE_STATUS_SEVERITY[self.status]:
             self.status = status
 
+    def note_failure_origin(self, error: NodeError) -> None:
+        """Record the node an upstream failure started at, so the editor can name it."""
+        if not error.event_chain:
+            return
+        # A memoized failure is re-raised from the node asked, which may itself only have
+        # inherited it; follow such nodes back to the ones that failed on their own.
+        pending = [error.event_chain[0].node]
+        while pending:
+            origin = pending.pop(0)
+            if origin is self or origin in self.failure_origins:
+                continue
+            if origin.failure_origins and not origin.status_errors:
+                pending.extend(origin.failure_origins)
+            else:
+                self.failure_origins.append(origin)
+
     def get_output(self, target_node: Node | None = None, metric: str | None = None) -> pd.DataFrame:
         df = self.get_output_pl(target_node, metric)
         return df.to_pandas()
@@ -1465,7 +1515,7 @@ class Node:
                 df = df.paths.get_operation(tag)(df, self.context)
         return df
 
-    def get_output_pl(  # noqa: C901, PLR0912
+    def get_output_pl(
         self,
         target_node: Node | None = None,
         metric: str | None = None,
@@ -1499,6 +1549,7 @@ class Node:
                         NodeStatus.FAILED,
                         NodeStatusError(phase=NodeErrorPhase.COMPUTATION, message=_failure_message(e)) if own_error else None,
                     )
+                    self.note_failure_origin(e)
                     e.add_node_event(self, event='get_output', target_node=target_node)
                     raise
                 self.mark_status(
@@ -1509,17 +1560,14 @@ class Node:
 
             if span is not None:
                 if cache_res is None or not cache_res.is_hit:
-                    span.set_data('cache', 'miss')
+                    span.set_attribute('cache', 'miss')
                 else:
-                    span.set_data('cache', cache_res.kind.name)
+                    span.set_attribute('cache', cache_res.kind.name)
             if node_run is not None and cache_res is not None:
                 node_run.mark_cache(cache_res)
 
             if target_node is not None:
                 df = self._process_edge_output(df, target_node)
-
-            if span is not None:
-                span.set_status(SPANSTATUS.OK)
 
         if self.context.compare_pipeline_compatibility:
             self.check_pipeline_compatibility(df, target_node=target_node, metric=metric)
@@ -1543,7 +1591,45 @@ class Node:
             df = ppl.from_pandas(df)
 
         self.validate_output(df)
+        self._check_kept_categories(df)
         return df
+
+    def _kept_inputs(self) -> list[tuple[str, ppl.PathsDataFrame]]:
+        """
+        Return each input tagged ``keep_categories`` as this node received it, with the name of its source.
+
+        Graph bindings carry the tags of node edges and dataset bindings alike. A node built from
+        edges alone (tests, legacy load paths) has none, so its edges are read instead.
+        """
+        if self.runtime_input_bindings:
+            return [
+                (binding.source_id or str(binding.id), self.resolve_input_binding(binding))
+                for binding in self.runtime_input_bindings
+                if binding.definition is not None and KEEP_CATEGORIES_TAG in binding.definition.tags
+            ]
+        return [
+            (edge.input_node.id, edge.input_node.get_output_pl(target_node=self))
+            for edge in self.edges
+            if edge.output_node is self and KEEP_CATEGORIES_TAG in edge.tags
+        ]
+
+    def _check_kept_categories(self, df: ppl.PathsDataFrame) -> None:
+        """
+        Fail if the result drops rows of an input tagged ``keep_categories``.
+
+        A product keeps only the rows its operands share, so an activity without a factor would
+        vanish from the result with no error. See `nodes.kept_categories`.
+        """
+        for source, kept in self._kept_inputs():
+            rows = dropped_rows(kept, df)
+            if rows.height:
+                raise NodeError(
+                    self,
+                    "The result drops values of input '%s', which is tagged %s: %s. "
+                    'A factor or other operand is probably missing for them.'
+                    % (source, KEEP_CATEGORIES_TAG, describe_dropped(rows)),
+                    event='compute',
+                )
 
     def referenced_global_parameters(self) -> list[str]:
         """Return global parameters this node's configuration refers to, beyond the class's `global_parameters`."""
@@ -1565,6 +1651,7 @@ class Node:
         if cache_res is not None and cache_res.is_hit and cache_res.obj is not None:
             return cache_res.obj
         df = self._compute_validated()
+        self._note_unmatched_filters()
         if cache_res is not None and self.status in (None, NodeStatus.OK):
             self.hasher.cache_output(cache_res, df)
         return df
@@ -1589,6 +1676,7 @@ class Node:
                 df = apply_hooks(self, self.get_base_output_pl())
             else:
                 df = self._compute_validated(target_node)
+            self._note_unmatched_filters()
             # mark_status keeps any DEGRADED/INCOMPLETE a tolerant node set during compute().
             self.mark_status(NodeStatus.OK)
             # Cache only clean results: a cross-request cache hit must never read back as OK
@@ -2102,9 +2190,10 @@ class Node:
         for node, mult in zip(nodes, mults, strict=True):
             try:
                 node_df = node.get_output_pl(self, metric=metric)
-            except NodeError:
+            except NodeError as e:
                 if not tolerate_failures:
                     raise
+                self.note_failure_origin(e)
                 skipped += 1
                 continue
             if tolerate_failures and node.status is NodeStatus.INCOMPLETE:
