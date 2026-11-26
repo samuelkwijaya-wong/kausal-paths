@@ -531,6 +531,17 @@ dimensions:
     label: Polttoon päätyvän jätteen fossiilisen osuuden vähentäminen
     label_en: Reduce carbon intensity of incinerated waste
 
+- id: scenario
+  label: Skenaario
+  label_en: Scenario
+  categories:
+  - id: roadmap
+    label: Tiekartta
+    label_en: Roadmap
+  - id: roadmap_plus
+    label: Tiekartta+
+    label_en: Roadmap+
+
 # ----- Kelicobe
 
 - id: owner_kelicobe
@@ -4481,6 +4492,29 @@ nodes:
   output_nodes:
   - id: building_heating_cost_benefit
 
+- id: reduce_carbon_intensity_of_incinerated_waste_cost_benefit
+  name: Polttoon päätyvän jätteen fossiilisen osuuden vähentäminen
+  name_en: Reduce carbon intensity of incinerated waste
+  color: '#AD3963'
+  type: formula.FormulaNode
+  quantity: currency
+  unit: MEUR/a
+  input_dimensions: [cost_type, owner, action]
+  output_dimensions: [cost_type, owner, action]
+  params:
+    formula: total_costs + total_benefits
+  input_nodes:
+  - id: total_costs
+    from_dimensions:
+    - id: action
+      categories: [reduce_carbon_intensity_of_incinerated_waste]
+  - id: total_benefits
+    from_dimensions:
+    - id: action
+      categories: [reduce_carbon_intensity_of_incinerated_waste]
+  output_nodes:
+  - id: building_heating_cost_benefit
+
 - id: building_heating_cost_benefit
   name: Rakennuksen lämmitys kustannukset ja hyödyt
   name_en: Building heating costs and benefits
@@ -5279,12 +5313,12 @@ actions:
 - id: improving_the_service_level_of_public_transport
   name: 'KAUPUNKI: Joukkoliikenteen palvelutason nosto'
   name_en: 'CITY: Improving the service level of public transport'
-  type: simple.AdditiveAction
+  type: simple.GenericAction
   group: transportation
   unit: Mvkm/a
   quantity: mileage
-  input_dimensions: [action, owner, vehicle_type]
-  output_dimensions: [action, owner, vehicle_type]
+  input_dimensions: [action, owner, scenario, vehicle_type]
+  output_dimensions: [action, owner, scenario, vehicle_type]
   input_datasets:
   - id: tampere/transportation_actions
     column: mileage
@@ -5296,6 +5330,20 @@ actions:
     - column: cost_type
     - column: scope
     - column: energy_carrier
+  params:
+  - id: operations
+    value: get_single_dataset, select_variant
+    is_customizable: false
+    is_visible: false
+  - id: categories
+    value: scenario:roadmap_plus
+    is_customizable: false
+    is_visible: false
+  - id: do_correction
+    value: false
+    is_customizable: true
+    label: Kunnianhimoisemmat vaikutukset
+    label_en: More ambitious impacts
   output_nodes:
   - id: car_kilometers
     from_dimensions:
@@ -5303,9 +5351,14 @@ actions:
       flatten: true
     - id: owner
       flatten: true
+    - id: scenario
+      flatten: true
     to_dimensions:
     - id: vehicle_type
   - id: transport_kilometer_impacts
+    from_dimensions:
+    - id: scenario
+      flatten: true
 
 - id: promoting_walking_and_cycling
   name: 'KAUPUNKI: Pyöräilyn edistäminen'
@@ -5323,6 +5376,7 @@ actions:
     - column: sector
     - dimension: action
       categories: [promoting_walking_and_cycling]
+    - column: scenario
     - column: scope
     - column: energy_carrier
   output_metrics:
@@ -5427,12 +5481,12 @@ actions:
 - id: parking_policy_to_support_sustainable_mobility
   name: 'KAUPUNKI: Kestävää liikkumista tukeva pysäköintipolitiikka'
   name_en: 'CITY: Parking policy to support sustainable mobility'
-  type: simple.AdditiveAction
+  type: simple.GenericAction
   group: transportation
   unit: Mvkm/a
   quantity: mileage
-  input_dimensions: [action, owner, vehicle_type]
-  output_dimensions: [action, owner, vehicle_type]
+  input_dimensions: [action, owner, scenario, vehicle_type]
+  output_dimensions: [action, owner, scenario, vehicle_type]
   input_datasets:
   - id: tampere/transportation_actions
     column: mileage
@@ -5444,6 +5498,20 @@ actions:
     - column: cost_type
     - column: scope
     - column: energy_carrier
+  params:
+  - id: operations
+    value: get_single_dataset, select_variant
+    is_customizable: false
+    is_visible: false
+  - id: categories
+    value: scenario:roadmap_plus
+    is_customizable: false
+    is_visible: false
+  - id: do_correction
+    value: false
+    is_customizable: true
+    label: Kunnianhimoisemmat vaikutukset
+    label_en: More ambitious impacts
   output_nodes:
   - id: car_kilometers
     from_dimensions:
@@ -5451,9 +5519,14 @@ actions:
       flatten: true
     - id: owner
       flatten: true
+    - id: scenario
+      flatten: true
     to_dimensions:
     - id: vehicle_type
   - id: transport_kilometer_impacts
+    from_dimensions:
+    - id: scenario
+      flatten: true
 
 - id: plusbus_investments
   name: 'KAUPUNKI: Plusbussi-investoinnit'
@@ -5471,6 +5544,7 @@ actions:
     - column: sector
     - dimension: action
       categories: [plusbus_investments]
+    - column: scenario
   output_metrics:
   - id: mileage
     unit: Mvkm/a
@@ -5632,6 +5706,7 @@ actions:
     - column: sector
     - dimension: action
       categories: [tramline_3_construction]
+    - column: scenario
     - column: energy_carrier
   output_metrics:
   - id: mileage
@@ -5782,7 +5857,7 @@ actions:
       flatten: true
 
 - id: reduce_speedlimits_on_highways
-  name: Nopeusrajoitusten alentaminen maanteillä
+  name: 'VALTIO: Nopeusrajoitusten alentaminen maanteillä'
   name_en: Reduce speed limits on highways
   type: simple.AdditiveAction
   group: transportation
@@ -5798,6 +5873,7 @@ actions:
     - column: sector
     - dimension: action
       categories: [reduce_speedlimits_on_highways]
+    - column: scenario
     - column: owner
     - column: vehicle_type
     - column: cost_type
@@ -6491,6 +6567,41 @@ actions:
     - id: scope
       flatten: true
 
+- id: reduce_carbon_intensity_of_incinerated_waste
+  name: Polttoon päätyvän jätteen fossiilisen osuuden vähentäminen
+  name_en: Reduce carbon intensity of incinerated waste
+  type: simple.AdditiveAction
+  group: building_heating
+  unit: t_co2e/a
+  quantity: emissions
+  input_dimensions: [action, heating, energy_carrier, ghg, scope]
+  output_dimensions: [action, heating, energy_carrier, ghg, scope]
+  input_datasets:
+  - id: tampere/stationary_actions
+    column: emissions
+    forecast_from: 2024
+    filters:
+    - column: sector
+    - dimension: action
+      categories: [reduce_carbon_intensity_of_incinerated_waste]
+    - column: owner
+    - column: cost_type
+  output_nodes:
+  - id: district_heating_emissions_total
+    from_dimensions:
+    - id: action
+      flatten: true
+  - id: emissions_impacts
+    from_dimensions:
+    - id: heating
+      flatten: true
+    - id: energy_carrier
+      flatten: true
+    - id: ghg
+      flatten: true
+    - id: scope
+      flatten: true
+
 # ----- Sähkön Kulutus
 - id: build_renewable_electricity_production
   name: 'YKSITYINEN: Hajautettu uusiutuva energia (aurinkosähkö)'
@@ -7010,7 +7121,7 @@ actions:
       flatten: true
 
 - id: renewable_hydrogen_and_emethane_plant
-  name: Uusiutuvan vedyn ja sähkömetaanin tuotantolaitos
+  name: 'YKSITYINEN: Uusiutuvan vedyn ja sähkömetaanin tuotantolaitos'
   name_en: Renewable hydrogen and e-methane plant
   type: simple.AdditiveAction
   group: industry_and_machinery
@@ -7473,6 +7584,8 @@ scenarios:
     value: true
   - id: emission_free_construction_sites.enabled
     value: true
+  - id: renewable_hydrogen_and_emethane_plant.enabled
+    value: true
   - id: parameter_electricity_emission_factor.enabled
     value: true
   - id: parameter_discount_rate.enabled
@@ -7492,3 +7605,10 @@ scenarios:
   name: Hiilineutraali Tampere 2030 -tiekartta+
   name_en: Carbon-neutral Tampere 2030 roadmap+
   all_actions_enabled: true
+  params:
+  - id: reduce_speedlimits_on_highways.enabled
+    value: false
+  - id: improving_the_service_level_of_public_transport.do_correction
+    value: true
+  - id: parking_policy_to_support_sustainable_mobility.do_correction
+    value: true
