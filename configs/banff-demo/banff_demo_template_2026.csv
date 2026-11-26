@@ -1,0 +1,8 @@
+Dataset,Metric,Quantity,Unit,2016,2026,Source,Comment
+Reconciliation indicators,Buildings,number,dimensionless,,,Kausal demo placeholder,"2016: Not in the Roadmap (Figure 9 is a map, not a count). 2026: blank on purpose - to be collected for the 2026 inventory."
+Reconciliation indicators,Employment,employment,cap,5100,,Banff Roadmap 2019,"2016: Read from chart (Figure 5, p. 12). 2026: blank on purpose - to be collected for the 2026 inventory."
+Reconciliation indicators,Households,number,dimensionless,2500,,Banff Roadmap 2019,"2016: Read from chart (Figure 5, p. 12). 2026: blank on purpose - to be collected for the 2026 inventory."
+Reconciliation indicators,Transit ridership,number,dimensionless,,,Kausal demo placeholder,"2016: Not in the Roadmap. Annual boardings, Roam Transit. 2026: blank on purpose - to be collected for the 2026 inventory."
+Reconciliation indicators,Tourism revenue,currency,CAD/a,,,Kausal demo placeholder,2016: Not in the Roadmap. Needed for emissions per tourism dollar. 2026: blank on purpose - to be collected for the 2026 inventory.
+Reconciliation indicators,Gross domestic product,currency,CAD/a,,,Kausal demo placeholder,2016: Not in the Roadmap. Needed for emissions per unit of economic output. 2026: blank on purpose - to be collected for the 2026 inventory.
+Reconciliation indicators,Air travel emissions,emissions,t_co2e/a,,,Kausal demo placeholder,"2016: Outside the Roadmap inventory (scope 3, p. 13). Reference-only estimate. 2026: blank on purpose - to be collected for the 2026 inventory."

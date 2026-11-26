@@ -1,0 +1,1008 @@
+# Banff (illustrative demo)
+#
+# Illustrative demo based on the public 2019 Banff Renewable Energy Transition Roadmap.
+# Not prepared or endorsed by the Town of Banff.
+#
+# Built only from the public Roadmap (Town of Banff, December 2019; analysis by SSG and
+# whatIf? Technologies). Every number is in the banff-demo/* datasets with its printed page
+# and whether it is exact, read from a chart or interpolated. The datasets are produced by
+# configs/banff-demo/make_banff_demo_data.py; assumptions and the Roadmap's own
+# inconsistencies are in configs/banff-demo/DATA_NOTES.md.
+#
+# HOW THE MODEL IS BUILT
+#   Calibrated, not rebuilt from physics. Emissions start from the 2016 inventory by GPC
+#   sector (p. 103) held flat. Three groups of actions then move them:
+#   (a) changes that happen regardless of local action move each sector to the Roadmap's
+#       business-as-usual 2050 value (p. 103) - buildings by 2031, when the Alberta grid
+#       factor stops falling, everything else in a straight line to 2050;
+#   (b) and (c) the five largest Roadmap actions, with their 2050 effect from p. ix;
+#   plus one block for the other 21 rows of the action table (p. ix), carrying what is left so that the Roadmap
+#   scenario lands exactly on the Roadmap 2050 value of every sector (p. 103).
+#   The Roadmap says the actions are interdependent (p. 54); their split is a demo device.
+#
+# SCENARIOS
+#   baseline             No change from 2016: every action off. A reference line only.
+#   business_as_usual    Group (a) on. Reproduces the Roadmap BAU (292,160 t in 2050).
+#   default (Roadmap)    Everything on. Reproduces the Roadmap (71,884 t in 2050).
+#
+# THE 2026 SLOT
+#   maximum_historical_year stays 2016: 2016 is the only measured year. The 2026 inventory
+#   lives in banff-demo/inventory_reconciliation, whose 2026 column is currently a
+#   PLACEHOLDER (the Roadmap BAU forecast for 2026). When the real 2026 inventory exists,
+#   it replaces that column; moving the model's base year to 2026 is a separate decision.
+
+id: banff-demo
+default_language: en
+supported_languages: []
+dataset_repo:
+  url: https://github.com/kausaltech/dvctest.git
+  # TO BE SET after the banff-demo datasets are uploaded: the dvctest commit that contains them.
+  commit: e1ea98505efa59ce6ccc1c74a2efc7203cc396df
+  dvc_remote: kausal-s3
+name: Banff (illustrative demo)
+owner: Kausal (illustrative demo, not the Town of Banff)
+theme_identifier: default
+lead_title: Banff (illustrative demo)
+lead_paragraph: >
+  Illustrative demo based on the public 2019 Banff Renewable Energy Transition Roadmap.
+  Not prepared or endorsed by the Town of Banff.
+
+reference_year: 2016
+minimum_historical_year: 2016
+maximum_historical_year: 2016
+emission_forecast_from: 2017
+target_year: 2050
+model_end_year: 2050
+emission_unit: t_co2e/a
+emission_dimensions: [sector]
+
+features:
+  baseline_visible_in_graphs: true
+  use_datasets_from_db: true
+  requires_authentication: true
+  show_significant_digits: 4
+  maximum_fraction_digits: 0
+
+action_groups:
+- id: happens_regardless
+  name: (a) Happens regardless of local action
+  color: '#9AA5AD'
+- id: necessary_local
+  name: (b) Necessary local actions
+  color: '#2E7D6B'
+- id: choices_to_weigh
+  name: (c) Choices to weigh and prioritise
+  color: '#D9822B'
+- id: other_roadmap
+  name: Other Roadmap actions (combined)
+  color: '#7B6CA8'
+
+dimensions:
+- id: sector
+  label: GPC sector
+  categories:
+  - id: residential
+    label: Residential buildings
+    color: '#A65A49'
+  - id: commercial
+    label: Commercial buildings
+    color: '#F2C879'
+  - id: institutional
+    label: Institutional buildings
+    color: '#F0A06B'
+  - id: municipal
+    label: Municipal buildings
+    color: '#3BA9D6'
+  - id: local_transport
+    label: Local transportation
+    color: '#5F8C99'
+  - id: visitor_transport
+    label: Visitor transportation
+    color: '#9FD3E0'
+  - id: waste
+    label: Waste
+    color: '#C9D9A6'
+  - id: fugitive
+    label: Fugitive
+    color: '#D9A0A7'
+  - id: energy_production
+    label: Fossil fuel energy production (cogeneration)
+    color: '#1E5631'
+
+- id: roadmap_action
+  label: Roadmap action
+  categories:
+  - id: electrify_visitor_vehicles
+    label: Electrify visitor vehicles
+  - id: enhanced_transit
+    label: Enhanced transit
+  - id: non_residential_retrofits
+    label: Non-residential building retrofits
+  - id: gas_cogeneration
+    label: Gas cogeneration
+  - id: renewable_electricity_procurement
+    label: Renewable electricity storage and procurement
+  - id: other_roadmap_actions
+    label: Other Roadmap actions
+
+- id: fuel_source
+  label: Fuel source
+  categories:
+  - id: visitor_gasoline
+    label: Visitor gasoline
+  - id: local_gasoline
+    label: Local gasoline
+  - id: visitor_diesel
+    label: Visitor diesel
+  - id: local_diesel
+    label: Local diesel
+  - id: visitor_electricity
+    label: Visitor electricity
+  - id: local_electricity
+    label: Local electricity
+  - id: natural_gas
+    label: Natural gas
+  - id: propane
+    label: Propane
+  - id: fuel_oil
+    label: Fuel oil
+  - id: waste
+    label: Waste
+  - id: fugitive
+    label: Fugitive
+
+- id: energy_carrier
+  label: Energy source
+  categories:
+  - id: gasoline
+    label: Gasoline
+  - id: diesel
+    label: Diesel
+  - id: natural_gas
+    label: Natural gas
+  - id: electricity
+    label: Grid electricity
+  - id: grid_renewable_electricity
+    label: Grid renewable electricity
+  - id: solar
+    label: Solar
+  - id: propane
+    label: Propane
+  - id: fuel_oil
+    label: Fuel oil
+  - id: biogas
+    label: Biogas
+  - id: district_energy
+    label: District energy
+  - id: other
+    label: Other
+
+- id: visitor_type
+  label: Visitor type
+  categories:
+  - id: day_visitor
+    label: Day visitors
+  - id: multi_day_visitor
+    label: Multi-day visitors
+
+- id: building_type
+  label: Building type
+  categories:
+  - id: residential
+    label: Residential
+  - id: commercial_hospitality
+    label: Commercial and hospitality
+  - id: non_residential
+    label: Non-residential
+  - id: institutional
+    label: Institutional
+  - id: municipal
+    label: Municipal
+
+- id: waste_treatment
+  label: Waste treatment
+  categories:
+  - id: landfilled
+    label: Landfilled
+  - id: recycled
+    label: Recycled
+  - id: biologically_treated
+    label: Biologically treated
+
+- id: greenhouse_gas
+  label: Greenhouse gas
+  categories:
+  - id: co2
+    label: CO2
+  - id: ch4
+    label: CH4
+  - id: n2o
+    label: N2O
+
+emission_sectors:
+- id: net_emissions
+  name: Community emissions (GPC BASIC, induced activity)
+  description: >
+    Community greenhouse gas emissions as the Roadmap counts them: GPC BASIC, with
+    transport by the "induced activity" method (every trip that starts, ends or stays
+    in the town and Banff National Park; half of each Calgary trip). Air travel is not
+    included. Illustrative demo based on the public 2019 Roadmap; not prepared or
+    endorsed by the Town of Banff.
+  is_outcome: true
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  goals:
+  - label: Environmental Master Plan target (30% below 2016 by 2030, 80% by 2050)
+    default: true
+    is_main_goal: true
+    values:
+    - year: 2030
+      value: 297556   # 70% of 425,080 t
+    - year: 2050
+      value: 85016    # 20% of 425,080 t
+
+- id: building_emissions
+  name: Buildings
+  part_of: net_emissions
+  color: '#F2C879'
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+
+- id: transport_emissions
+  name: Transportation
+  part_of: net_emissions
+  color: '#9FD3E0'
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+
+- id: waste_emissions
+  name: Waste
+  part_of: net_emissions
+  color: '#C9D9A6'
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+
+- id: fugitive_emissions
+  name: Fugitive
+  part_of: net_emissions
+  color: '#D9A0A7'
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+
+- id: energy_production_emissions
+  name: Fossil fuel energy production (cogeneration)
+  part_of: net_emissions
+  color: '#1E5631'
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+
+nodes:
+
+# ===========================================================================
+# 2016 inventory - the starting point
+# ===========================================================================
+
+- id: inventory_emissions
+  name: 2016 inventory emissions, held at 2016 levels
+  description: >
+    Banff's 2016 community emissions by sector, 425,080 t CO2e in total (Roadmap
+    Appendix 2). Held at the 2016 level in every later year: the actions below are
+    what changes them, starting with the changes that happen regardless of local action.
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: banff-demo/emissions_inventory
+    column: emissions
+    forecast_from: 2017
+  output_nodes:
+  - id: building_emissions
+    from_dimensions:
+    - id: sector
+      categories: [residential, commercial, institutional, municipal]
+  - id: transport_emissions
+    from_dimensions:
+    - id: sector
+      categories: [local_transport, visitor_transport]
+  - id: waste_emissions
+    from_dimensions:
+    - id: sector
+      categories: [waste]
+  - id: fugitive_emissions
+    from_dimensions:
+    - id: sector
+      categories: [fugitive]
+  - id: energy_production_emissions
+    from_dimensions:
+    - id: sector
+      categories: [energy_production]
+
+- id: emissions_by_fuel_source
+  name: Emissions by fuel source, 2016 and business as usual
+  description: >
+    The Roadmap's second view of the same emissions, by fuel, with local and visitor
+    transport fuels kept apart. Business as usual only: the Roadmap does not publish the
+    sector-by-fuel split needed to link this view to the actions.
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [fuel_source]
+  output_dimensions: [fuel_source]
+  input_datasets:
+  - id: banff-demo/emissions_by_fuel_source
+    column: emissions
+    forecast_from: 2017
+  input_dataset_processors: [LinearInterpolation]
+
+# ===========================================================================
+# Drivers: residents, visitors, buildings, grid
+# ===========================================================================
+
+- id: residents
+  name: Residents
+  description: >
+    Permanent residents, growing about 1% a year from 9,511 in 2016 to 13,546 in 2050.
+  type: generic.GenericNode
+  quantity: population
+  unit: cap
+  input_datasets:
+  - id: banff-demo/residents
+    column: residents
+    forecast_from: 2017
+  input_dataset_processors: [LinearInterpolation]
+
+- id: visitors
+  name: Visitors per year
+  description: >
+    Day visits roughly double between 2016 and 2050. Multi-day visits stay flat, because
+    hotel beds and the commercial floor space cap limit overnight stays.
+  type: generic.GenericNode
+  quantity: population
+  unit: cap/a
+  input_dimensions: [visitor_type]
+  output_dimensions: [visitor_type]
+  input_datasets:
+  - id: banff-demo/visitors
+    column: visitors
+    forecast_from: 2017
+  input_dataset_processors: [LinearInterpolation]
+
+- id: visitor_presence_per_visit
+  name: Time each counted visit adds to the population
+  description: >
+    The Roadmap's text says 2.5 days per visit, but its published visitor-adjusted
+    population is only reproduced with one day per counted visit, so one day is used.
+  type: generic.GenericNode
+  quantity: duration
+  unit: d
+  input_datasets:
+  - id: banff-demo/visitor_presence
+    column: presence_per_visit
+    forecast_from: 2017
+
+- id: visitor_adjusted_population
+  name: Visitor-adjusted population
+  description: >
+    Residents plus the average number of visitors in town on any day. About 23,900 in
+    2016, 26,150 in 2026 and 33,400 in 2050.
+  type: formula.FormulaNode
+  quantity: population
+  unit: cap
+  input_nodes:
+  - id: residents
+  - id: visitors
+    from_dimensions:
+    - id: visitor_type
+      flatten: true
+  - id: visitor_presence_per_visit
+  params:
+    formula: residents + visitors * visitor_presence_per_visit
+
+- id: floor_area
+  name: Floor area
+  description: >
+    Building floor area. Commercial and hospitality floor space is capped by law and
+    the cap is reached in the early 2020s; municipal, institutional and other
+    non-residential floor area do not change.
+  type: generic.GenericNode
+  quantity: floor_area
+  unit: m**2
+  input_dimensions: [building_type]
+  output_dimensions: [building_type]
+  input_datasets:
+  - id: banff-demo/floor_area
+    column: floor_area
+    forecast_from: 2017
+  input_dataset_processors: [LinearInterpolation]
+
+- id: waste_tonnage
+  name: Solid waste
+  description: Waste landfilled, recycled and composted. 70% diversion by 2028.
+  type: generic.GenericNode
+  quantity: mass
+  unit: t/a
+  input_dimensions: [waste_treatment]
+  output_dimensions: [waste_treatment]
+  input_datasets:
+  - id: banff-demo/waste_tonnage
+    column: waste
+    forecast_from: 2017
+  input_dataset_processors: [LinearInterpolation]
+
+- id: energy_use_by_sector
+  name: Energy use by sector, business as usual
+  description: >
+    Energy used in buildings and transportation, 5.16 million GJ in 2016 falling to 4.06
+    million GJ in 2050 in business as usual. The Roadmap 2050 values are in the dataset
+    comments; this demo does not model how each action changes energy use.
+  type: generic.GenericNode
+  quantity: energy
+  unit: GJ/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: banff-demo/energy_use_by_sector
+    column: energy_use
+    forecast_from: 2017
+  input_dataset_processors: [LinearInterpolation]
+
+- id: energy_use_by_fuel
+  name: Energy use by fuel, business as usual
+  type: generic.GenericNode
+  quantity: energy
+  unit: GJ/a
+  input_dimensions: [energy_carrier]
+  output_dimensions: [energy_carrier]
+  input_datasets:
+  - id: banff-demo/energy_use_by_fuel
+    column: energy_use
+    forecast_from: 2017
+  input_dataset_processors: [LinearInterpolation]
+
+- id: grid_emission_factor_by_gas
+  name: Alberta grid emission factor by gas
+  type: generic.GenericNode
+  quantity: emission_factor
+  unit: g/kWh
+  input_dimensions: [greenhouse_gas]
+  output_dimensions: [greenhouse_gas]
+  input_datasets:
+  - id: banff-demo/grid_emission_factor
+    column: emission_factor
+    forecast_from: 2017
+  input_dataset_processors: [LinearInterpolation]
+
+- id: global_warming_potential
+  name: Global warming potential (100-year)
+  type: generic.GenericNode
+  quantity: ratio
+  unit: t_co2e/t
+  input_dimensions: [greenhouse_gas]
+  output_dimensions: [greenhouse_gas]
+  input_datasets:
+  - id: banff-demo/global_warming_potential
+    column: gwp
+    forecast_from: 2017
+
+- id: grid_emission_factor
+  name: Alberta grid emission factor
+  description: >
+    Emissions per kWh of Alberta grid electricity. It falls from about 950 g CO2e/kWh in
+    2016 to about 330 in 2031 as coal power is phased out, and is held there after 2031.
+    This is the main reason building emissions fall in business as usual.
+  type: generic.GenericNode
+  quantity: emission_factor
+  unit: g_co2e/kWh
+  input_nodes:
+  - id: grid_emission_factor_by_gas
+    tags: [non_additive]
+    to_dimensions:
+    - id: greenhouse_gas
+  - id: global_warming_potential
+    tags: [non_additive]
+    to_dimensions:
+    - id: greenhouse_gas
+  input_dimensions: [greenhouse_gas]
+  output_dimensions: [greenhouse_gas]
+
+- id: grid_emission_factor_total
+  name: Alberta grid emission factor, all gases
+  type: simple.AdditiveNode
+  quantity: emission_factor
+  unit: g_co2e/kWh
+  input_nodes:
+  - id: grid_emission_factor
+    from_dimensions:
+    - id: greenhouse_gas
+      flatten: true
+
+# ===========================================================================
+# Efficiency measures (the RFP's new "emissions efficiency" indicators)
+# ===========================================================================
+
+- id: emissions_per_resident
+  name: Emissions per resident
+  description: >
+    Community emissions divided by permanent residents. About 45 t CO2e per resident in
+    2016, against a Canadian average of 19.5 t (Roadmap p. viii).
+  type: formula.FormulaNode
+  quantity: per_capita
+  unit: t_co2e/cap/a
+  input_nodes:
+  - id: net_emissions
+    from_dimensions:
+    - id: sector
+      flatten: true
+  - id: residents
+  params:
+    formula: net_emissions / residents
+
+- id: emissions_per_visitor_adjusted_person
+  name: Emissions per visitor-adjusted person
+  description: >
+    Community emissions divided by residents plus the average number of visitors in
+    town, a fairer per-person figure for a visitor economy.
+  type: formula.FormulaNode
+  quantity: per_capita
+  unit: t_co2e/cap/a
+  input_nodes:
+  - id: net_emissions
+    from_dimensions:
+    - id: sector
+      flatten: true
+  - id: visitor_adjusted_population
+  params:
+    formula: net_emissions / visitor_adjusted_population
+
+- id: visitor_transport_emissions_per_visit
+  name: Visitor transport emissions per visit
+  description: >
+    Visitor transportation emissions divided by all day and multi-day visits in the
+    year. Emissions per tourism dollar and per unit of economic output need data the
+    Roadmap does not have; they are listed in the 2026 data template.
+  type: formula.FormulaNode
+  quantity: per_capita
+  unit: kg_co2e/cap
+  input_nodes:
+  - id: transport_emissions
+    from_dimensions:
+    - id: sector
+      categories: [visitor_transport]
+      flatten: true
+  - id: visitors
+    from_dimensions:
+    - id: visitor_type
+      flatten: true
+  params:
+    formula: transport_emissions / visitors
+
+# ===========================================================================
+# 2016 to 2026 reconciliation
+# ===========================================================================
+
+- id: inventory_reconciliation_emissions
+  name: Community inventory, 2016 and 2026 (2026 is a placeholder)
+  description: >
+    The two inventory years side by side, by GPC sector. 2016 is the Roadmap inventory.
+    <b>2026 is a placeholder, not a measurement</b>: it is the Roadmap's
+    business-as-usual forecast for 2026. It is replaced by the 2026 GPC BASIC inventory
+    when that exists. Years in between are a straight line.
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: banff-demo/inventory_reconciliation
+    column: emissions
+    # The 2026 placeholder is itself a forecast, so it is marked as one. When the real
+    # 2026 inventory replaces it, change this to 2027.
+    forecast_from: 2017
+  input_dataset_processors: [LinearInterpolation]
+
+- id: roadmap_published_emissions
+  name: Roadmap 2050 emissions as published
+  description: >
+    The Roadmap's own 2050 result by sector (Appendix 2), for checking that the model's
+    Roadmap scenario lands on it.
+  type: formula.FormulaNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_nodes:
+  - id: roadmap_published_emissions_input
+  params:
+    formula: from_year(roadmap_published_emissions_input, 2050)
+
+- id: roadmap_published_emissions_input
+  name: Roadmap 2050 emissions as published (input)
+  type: generic.GenericNode
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: banff-demo/emissions_roadmap_published
+    column: emissions
+    forecast_from: 2017
+
+actions:
+
+# ===========================================================================
+# (a) Happens regardless of local action - together these are business as usual
+# ===========================================================================
+
+- id: bau_buildings
+  name: Cleaner Alberta grid and building trends
+  description: >
+    Building emissions fall by 60,000 t between 2016 and 2050 without any local action,
+    mainly because Alberta phases out coal power and the grid emission factor falls by
+    about two thirds by 2031. Warmer winters, more efficient new buildings and growth
+    are also in this figure. The change is taken to be complete by 2031, when the grid
+    factor stops falling.
+  group: happens_regardless
+  type: linear.DatasetReduceAction
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_nodes:
+  - id: inventory_emissions
+    tags: [historical]
+    from_dimensions:
+    - id: sector
+      categories: [residential, commercial, institutional, municipal]
+  input_datasets:
+  - id: banff-demo/emissions_business_as_usual
+    tags: [goal]
+    column: emissions
+    forecast_from: 2017
+    filters:
+    - dimension: sector
+      categories: [residential, commercial, institutional, municipal]
+  output_nodes:
+  - id: building_emissions
+
+- id: bau_vehicles
+  name: Vehicle efficiency and gradual electric vehicle uptake
+  description: >
+    Transportation emissions fall by 73,000 t between 2016 and 2050 without local
+    action, through national fuel efficiency standards, lower-carbon fuels and a slow
+    rise of electric vehicles to 10% of cars and trucks by 2040.
+  group: happens_regardless
+  type: linear.DatasetReduceAction
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_nodes:
+  - id: inventory_emissions
+    tags: [historical]
+    from_dimensions:
+    - id: sector
+      categories: [local_transport, visitor_transport]
+  input_datasets:
+  - id: banff-demo/emissions_business_as_usual
+    tags: [goal]
+    column: emissions
+    forecast_from: 2017
+    filters:
+    - dimension: sector
+      categories: [local_transport, visitor_transport]
+  output_nodes:
+  - id: transport_emissions
+
+- id: bau_waste_and_gas_network
+  name: Waste growth and gas network trends
+  description: >
+    Waste emissions grow slightly with population (+750 t by 2050) and fugitive
+    emissions from the natural gas network fall slightly (-400 t).
+  group: happens_regardless
+  type: linear.DatasetReduceAction
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_nodes:
+  - id: inventory_emissions
+    tags: [historical]
+    from_dimensions:
+    - id: sector
+      categories: [waste, fugitive]
+  input_datasets:
+  - id: banff-demo/emissions_business_as_usual
+    tags: [goal]
+    column: emissions
+    forecast_from: 2017
+    filters:
+    - dimension: sector
+      categories: [waste, fugitive]
+  output_nodes:
+  - id: waste_emissions
+    from_dimensions:
+    - id: sector
+      categories: [waste]
+  - id: fugitive_emissions
+    from_dimensions:
+    - id: sector
+      categories: [fugitive]
+
+# ===========================================================================
+# (b) Necessary local actions
+# ===========================================================================
+
+- id: electrify_visitor_vehicles
+  name: Electrify visitor vehicles
+  description: >
+    Roadmap action 26b: all new visitor vehicles electric by 2040. The largest single
+    action, 64,310 t less in 2050. Effect grows from 2020 to full in 2040.
+    Interdependent with the other actions; not an independent saving.
+  group: necessary_local
+  type: simple.AdditiveAction
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: banff-demo/roadmap_action_effects
+    column: emission_change
+    forecast_from: 2017
+    filters:
+    - dimension: roadmap_action
+      categories: [electrify_visitor_vehicles]
+      flatten: true
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: transport_emissions
+    from_dimensions:
+    - id: sector
+      categories: [visitor_transport]
+
+- id: enhanced_transit
+  name: Enhanced transit
+  description: >
+    Roadmap actions 21-23: in-town, regional and Calgary-Bow Valley transit, so that
+    transit carries 20% of in-town trips by 2030 and 20-30% of regional and intercity
+    trips by 2050. 27,920 t less in 2050.
+  group: necessary_local
+  type: simple.AdditiveAction
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: banff-demo/roadmap_action_effects
+    column: emission_change
+    forecast_from: 2017
+    filters:
+    - dimension: roadmap_action
+      categories: [enhanced_transit]
+      flatten: true
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: transport_emissions
+    from_dimensions:
+    - id: sector
+      categories: [local_transport, visitor_transport]
+
+- id: non_residential_retrofits
+  name: Non-residential building retrofits
+  description: >
+    Roadmap action 4: deep energy retrofits of commercial and institutional buildings.
+    19,040 t less in 2050.
+  group: necessary_local
+  type: simple.AdditiveAction
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: banff-demo/roadmap_action_effects
+    column: emission_change
+    forecast_from: 2017
+    filters:
+    - dimension: roadmap_action
+      categories: [non_residential_retrofits]
+      flatten: true
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: building_emissions
+    from_dimensions:
+    - id: sector
+      categories: [commercial, institutional]
+
+# ===========================================================================
+# (c) Choices to weigh and prioritise
+# ===========================================================================
+
+- id: gas_cogeneration
+  name: Gas cogeneration
+  description: >
+    Roadmap actions 9-12: gas-fired combined heat and power plants. Cleaner than Alberta
+    grid power, but the plants themselves still emit about 956 t a year unless their gas
+    is replaced by renewable natural gas. Net 16,430 t less in 2050.
+  group: choices_to_weigh
+  type: simple.AdditiveAction
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: banff-demo/roadmap_action_effects
+    column: emission_change
+    forecast_from: 2017
+    filters:
+    - dimension: roadmap_action
+      categories: [gas_cogeneration]
+      flatten: true
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: building_emissions
+    from_dimensions:
+    - id: sector
+      categories: [residential, commercial, institutional, municipal]
+  - id: transport_emissions
+    from_dimensions:
+    - id: sector
+      categories: [local_transport, visitor_transport]
+  - id: energy_production_emissions
+    from_dimensions:
+    - id: sector
+      categories: [energy_production]
+
+- id: renewable_electricity_procurement
+  name: Renewable electricity storage and procurement
+  description: >
+    Roadmap actions 18-19: buying renewable electricity from outside the town and
+    storing it. 15,890 t less in 2050.
+  group: choices_to_weigh
+  type: simple.AdditiveAction
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: banff-demo/roadmap_action_effects
+    column: emission_change
+    forecast_from: 2017
+    filters:
+    - dimension: roadmap_action
+      categories: [renewable_electricity_procurement]
+      flatten: true
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: building_emissions
+    from_dimensions:
+    - id: sector
+      categories: [residential, commercial, institutional, municipal]
+  - id: transport_emissions
+    from_dimensions:
+    - id: sector
+      categories: [local_transport, visitor_transport]
+
+# ===========================================================================
+# The other 21 rows of the Roadmap action table (p. ix), as one block
+# ===========================================================================
+
+- id: other_roadmap_actions
+  name: Other Roadmap actions (combined)
+  description: >
+    The other 21 rows of the Roadmap's action table together - new building efficiency, residential and
+    municipal retrofits, heat pumps, solar PV, biogas cogeneration, renewable natural gas,
+    local vehicle electrification, carshare, car-free zones, cycling and walking. About 76,700 t
+    less in 2050. In this demo the block carries whatever each sector still needs so that
+    the Roadmap scenario matches the Roadmap's published 2050 result sector by sector.
+  group: other_roadmap
+  type: simple.AdditiveAction
+  quantity: emissions
+  unit: t_co2e/a
+  input_dimensions: [sector]
+  output_dimensions: [sector]
+  input_datasets:
+  - id: banff-demo/roadmap_action_effects
+    column: emission_change
+    forecast_from: 2017
+    filters:
+    - dimension: roadmap_action
+      categories: [other_roadmap_actions]
+      flatten: true
+  input_dataset_processors: [LinearInterpolation]
+  output_nodes:
+  - id: building_emissions
+    from_dimensions:
+    - id: sector
+      categories: [residential, commercial, institutional, municipal]
+  - id: transport_emissions
+    from_dimensions:
+    - id: sector
+      categories: [local_transport, visitor_transport]
+  - id: waste_emissions
+    from_dimensions:
+    - id: sector
+      categories: [waste]
+  - id: fugitive_emissions
+    from_dimensions:
+    - id: sector
+      categories: [fugitive]
+
+pages:
+- id: home
+  name: Banff community emissions (illustrative demo)
+  path: /
+  type: emission
+  outcome_node: net_emissions
+  lead_title: Banff community emissions (illustrative demo)
+  lead_paragraph: >
+    Illustrative demo based on the public 2019 Banff Renewable Energy Transition Roadmap.
+    Not prepared or endorsed by the Town of Banff. 2016 inventory and the Roadmap's
+    business-as-usual and Roadmap scenarios to 2050, with the actions sorted into changes
+    that happen regardless of local action, necessary local actions, and choices to weigh.
+
+- id: reconciliation
+  name: 2016 and 2026 inventories
+  path: /reconciliation
+  type: outcome
+  outcome_node: inventory_reconciliation_emissions
+  lead_title: 2016 and 2026 inventories
+  lead_paragraph: >
+    The 2016 inventory next to the slot for the 2026 inventory. The 2026 values shown are
+    placeholders (the 2019 Roadmap's business-as-usual forecast for 2026), not
+    measurements. Illustrative demo; not prepared or endorsed by the Town of Banff.
+  show_in_menus: true
+
+- id: visitors
+  name: Residents and visitors
+  path: /visitors
+  type: outcome
+  outcome_node: visitor_adjusted_population
+  lead_title: Residents and visitors
+  lead_paragraph: >
+    Banff's visitor-adjusted population - residents plus the visitors in town on an
+    average day. Illustrative demo; not prepared or endorsed by the Town of Banff.
+  show_in_menus: true
+
+- id: efficiency
+  name: Emissions efficiency
+  path: /efficiency
+  type: outcome
+  outcome_node: emissions_per_visitor_adjusted_person
+  lead_title: Emissions efficiency
+  lead_paragraph: >
+    Emissions per person, counting visitors. Emissions per resident and per visit are on
+    the linked pages. Illustrative demo; not prepared or endorsed by the Town of Banff.
+  show_in_menus: true
+
+scenarios:
+- id: baseline
+  name: No change from 2016 (reference only)
+  param_values:
+    bau_buildings.enabled: false
+    bau_vehicles.enabled: false
+    bau_waste_and_gas_network.enabled: false
+    electrify_visitor_vehicles.enabled: false
+    enhanced_transit.enabled: false
+    non_residential_retrofits.enabled: false
+    gas_cogeneration.enabled: false
+    renewable_electricity_procurement.enabled: false
+    other_roadmap_actions.enabled: false
+
+- id: business_as_usual
+  name: Business as usual (2019 Roadmap)
+  param_values:
+    bau_buildings.enabled: true
+    bau_vehicles.enabled: true
+    bau_waste_and_gas_network.enabled: true
+    electrify_visitor_vehicles.enabled: false
+    enhanced_transit.enabled: false
+    non_residential_retrofits.enabled: false
+    gas_cogeneration.enabled: false
+    renewable_electricity_procurement.enabled: false
+    other_roadmap_actions.enabled: false
+
+- id: default
+  default: true
+  name: Roadmap, all actions (2019 Roadmap)
+  all_actions_enabled: true
