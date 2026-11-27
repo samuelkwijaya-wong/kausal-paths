@@ -59,7 +59,6 @@ emission_dimensions: [sector]
 features:
   baseline_visible_in_graphs: true
   use_datasets_from_db: true
-  requires_authentication: true
   show_significant_digits: 4
   maximum_fraction_digits: 0
 

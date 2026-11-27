@@ -3,8 +3,8 @@
 Illustrative demo based on the public 2019 Banff Renewable Energy Transition Roadmap.
 Not prepared or endorsed by the Town of Banff.
 
-Instance `banff-demo`, "Banff (illustrative demo)". YAML-sourced. Private: shared with CEA
-(Community Energy Association) only.
+Instance `banff-demo`, "Banff (illustrative demo)". YAML-sourced. No login is required: anyone
+with the link can view it. The link is shared with CEA (Community Energy Association) only.
 
 ## Files
 
@@ -69,12 +69,11 @@ Nothing in the platform code or the UI was changed.
    `reconciliation_indicators` is not read by any node; load it by name if the 2026 template
    should be visible in the admin.
 
-6. Hostname, theme (`default` for now) and user access for CEA. The config sets
-   `requires_authentication: true`.
+6. Hostname and theme (`default` for now). No login is required to view the demo.
 
 ## Decisions for you
 
-- **Hosting and access**: which server and hostname, and how CEA users get accounts.
+- **Hosting**: which server and hostname.
 - **Admin editing**: whether to load the datasets into the database now (step 5).
 - **Theme**: `default`. A Kausal demo theme may suit better; it must not look like the Town's.
 - **Where the files live**: they are in `configs/banff-demo/` on this branch because `data/` is
